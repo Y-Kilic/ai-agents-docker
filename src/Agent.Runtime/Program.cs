@@ -1,11 +1,27 @@
 using Agent.Runtime.Tools;
 using Shared.Models;
+using Shared.LLM;
 
 var config = AgentProfiles.TryGetProfile(AgentType.Default, out var profile)
     ? profile
     : new AgentConfig("runtime", AgentType.Default);
 
 Console.WriteLine($"Starting agent: {config.Name} ({config.Type})");
+
+ILLMProvider llmProvider;
+var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+if (string.IsNullOrWhiteSpace(apiKey))
+{
+    llmProvider = new MockOpenAIProvider();
+    Console.WriteLine("Using MockOpenAIProvider");
+}
+else
+{
+    llmProvider = new OpenAIProvider(apiKey);
+    Console.WriteLine("Using OpenAIProvider");
+}
+
+ToolRegistry.Initialize(llmProvider);
 
 await RunAsync(args);
 
