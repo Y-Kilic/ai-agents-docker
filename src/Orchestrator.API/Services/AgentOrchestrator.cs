@@ -38,6 +38,7 @@ public class AgentOrchestrator
 
     public async Task<string> StartAgentAsync(string goal, AgentType type = AgentType.Default)
     {
+        var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
         if (_useLocal)
         {
             var id = Guid.NewGuid().ToString("N");
@@ -54,6 +55,10 @@ public class AgentOrchestrator
                 RedirectStandardOutput = false,
                 RedirectStandardError = false,
             };
+            if (!string.IsNullOrWhiteSpace(apiKey))
+            {
+                psi.Environment["OPENAI_API_KEY"] = apiKey;
+            }
 
             var proc = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start local agent process");
             proc.EnableRaisingEvents = true;
@@ -73,6 +78,8 @@ public class AgentOrchestrator
         await EnsureImageAsync();
 
         var env = new List<string> { $"GOAL={goal}" };
+        if (!string.IsNullOrWhiteSpace(apiKey))
+            env.Add($"OPENAI_API_KEY={apiKey}");
         if (!AgentProfiles.TryGetProfile(type, out var config))
             config = new AgentConfig("agent", type);
 
