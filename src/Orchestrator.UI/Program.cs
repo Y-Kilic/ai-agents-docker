@@ -6,7 +6,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddHttpClient();
+builder.Services.AddHttpClient(o =>
+{
+    // The UI always communicates with the API at http://localhost:5000
+    o.BaseAddress = new Uri("http://localhost:5000");
+});
 
 var app = builder.Build();
 

@@ -6,7 +6,7 @@ param(
 switch ($Action) {
     'start' {
         if (-not $env:ORCHESTRATOR_URL) {
-            $env:ORCHESTRATOR_URL = 'http://host.docker.internal:5000'
+            $env:ORCHESTRATOR_URL = 'http://localhost:5000'
         }
         dotnet run --project ../src/Orchestrator.API
     }
