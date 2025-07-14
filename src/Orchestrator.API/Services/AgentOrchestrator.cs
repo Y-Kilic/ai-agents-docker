@@ -112,11 +112,6 @@ public class AgentOrchestrator
             Memory = 256 * 1024 * 1024, // 256MB limit
             NanoCPUs = 1_000_000_000,   // 1 CPU
             NetworkMode = "bridge",
-            SecurityOpt = new List<string>
-            {
-                "apparmor=worldseed-agent",
-                $"seccomp={Path.GetFullPath("docker/profiles/seccomp-agent.json")}"
-            },
             Mounts = new List<Mount>
             {
                 new()
