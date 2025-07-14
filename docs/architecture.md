@@ -23,3 +23,5 @@ Container safeguards include:
 
 The orchestrator passes these options when launching each container.
 This logic is implemented in `AgentOrchestrator` via Docker.DotNet's `HostConfig` settings.
+
+Both the orchestrator backend and the Blazor UI are meant to run on the same local machine. Because of this local setup, requests from the UI to the API do not require authentication.

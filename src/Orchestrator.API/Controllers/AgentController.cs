@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Orchestrator.API.Services;
 using Shared.Models;
@@ -7,7 +6,6 @@ namespace Orchestrator.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
 public class AgentController : ControllerBase
 {
     private readonly AgentOrchestrator _orchestrator;
@@ -17,7 +15,6 @@ public class AgentController : ControllerBase
         _orchestrator = orchestrator;
     }
     [HttpGet]
-    [AllowAnonymous]
     public IActionResult GetConfig([FromQuery] AgentType type = AgentType.Default)
     {
         if (!AgentProfiles.TryGetProfile(type, out var config))
