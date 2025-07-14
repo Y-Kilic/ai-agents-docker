@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared.Messaging;
 
@@ -6,7 +5,6 @@ namespace Orchestrator.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
 public class MessageController : ControllerBase
 {
     [HttpPost("{id}")]

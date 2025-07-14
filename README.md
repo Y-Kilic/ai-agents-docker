@@ -20,6 +20,8 @@ dotnet build WorldSeed.sln
 
 Use `scripts/devtools.ps1` for simple dev workflows.
 
+Both the backend (Orchestrator.API) and the Blazor UI run on the same local machine. Calls between them do not require any authentication.
+
 ### Running without Docker
 
 If Docker is not available on your system you can still run the agents locally.
@@ -278,7 +280,6 @@ LLM integration (OpenAI)	✅
 Mock LLM provider       ✅
 When OPENAI_API_KEY is not set, the runtime uses a mock provider that echoes prompts.
 Repository pattern & unit of work       ✅
-JWT authentication          ✅
 Basic message hub           ✅
 Agent memory / embeddings       ✅ Basic loop
 Tool execution framework	✅
@@ -321,7 +322,6 @@ Build visual memory graph in Blazor UI
 
 Add unit tests for core libraries
 
-Use a strong JWT signing key via `appsettings.json`
 
 
 
