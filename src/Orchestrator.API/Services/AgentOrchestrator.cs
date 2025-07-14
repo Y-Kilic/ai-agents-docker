@@ -15,12 +15,15 @@ public class AgentOrchestrator
     private readonly bool _useLocal;
     private const string ImageName = "worldseed-agent";
     private readonly ConcurrentDictionary<string, Process> _processes = new();
+    private readonly ConcurrentDictionary<string, string> _containers = new();
     private readonly Data.IUnitOfWork _uow;
+    private readonly string _orchestratorUrl;
 
     public AgentOrchestrator(Data.IUnitOfWork uow)
     {
         _uow = uow;
         _useLocal = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("USE_LOCAL_AGENT"));
+        _orchestratorUrl = Environment.GetEnvironmentVariable("ORCHESTRATOR_URL") ?? "http://localhost:5000";
         if (!_useLocal)
         {
             try
@@ -39,9 +42,11 @@ public class AgentOrchestrator
     public async Task<string> StartAgentAsync(string goal, AgentType type = AgentType.Default)
     {
         var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+
+        var id = Guid.NewGuid().ToString("N");
+      
         if (_useLocal)
         {
-            var id = Guid.NewGuid().ToString("N");
             var runtimeDir = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../src/Agent.Runtime"));
             if (!Directory.Exists(runtimeDir))
             {
@@ -60,6 +65,9 @@ public class AgentOrchestrator
                 psi.Environment["OPENAI_API_KEY"] = apiKey;
             }
 
+            psi.Environment["AGENT_ID"] = id;
+            psi.Environment["ORCHESTRATOR_URL"] = _orchestratorUrl;
+
             var proc = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start local agent process");
             proc.EnableRaisingEvents = true;
             proc.Exited += (s, e) =>
@@ -77,9 +85,18 @@ public class AgentOrchestrator
         // ensure image exists
         await EnsureImageAsync();
 
-        var env = new List<string> { $"GOAL={goal}" };
+        var env = new List<string>
+        {
+            $"GOAL={goal}",
+            $"AGENT_ID={id}",
+            $"ORCHESTRATOR_URL={_orchestratorUrl}"
+        };
+      
         if (!string.IsNullOrWhiteSpace(apiKey))
             env.Add($"OPENAI_API_KEY={apiKey}");
+
+
+
         if (!AgentProfiles.TryGetProfile(type, out var config))
             config = new AgentConfig("agent", type);
 
@@ -94,7 +111,7 @@ public class AgentOrchestrator
             AutoRemove = true,
             Memory = 256 * 1024 * 1024, // 256MB limit
             NanoCPUs = 1_000_000_000,   // 1 CPU
-            NetworkMode = "none",
+            NetworkMode = "bridge",
             SecurityOpt = new List<string>
             {
                 "apparmor=worldseed-agent",
@@ -120,11 +137,12 @@ public class AgentOrchestrator
 
         await _docker.Containers.StartContainerAsync(container.ID, null);
 
-        var info = new AgentInfo(container.ID, type);
+        _containers[id] = container.ID;
+        var info = new AgentInfo(id, type);
         _uow.Agents.Add(info);
         await _uow.SaveChangesAsync();
 
-        return container.ID;
+        return id;
     }
 
     public IEnumerable<AgentInfo> ListAgents() => _uow.Agents.GetAll();
@@ -149,7 +167,10 @@ public class AgentOrchestrator
 
         _uow.Agents.Remove(id);
         await _uow.SaveChangesAsync();
-        await _docker!.Containers.StopContainerAsync(id, new ContainerStopParameters());
+        if (_containers.TryRemove(id, out var containerId))
+        {
+            await _docker!.Containers.StopContainerAsync(containerId, new ContainerStopParameters());
+        }
     }
 
     private async Task EnsureImageAsync()
