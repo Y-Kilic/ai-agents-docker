@@ -22,7 +22,7 @@ public class AuthController : ControllerBase
     [AllowAnonymous]
     public IActionResult Login([FromBody] string username)
     {
-        var key = _config["Jwt:Key"] ?? "super_secret_key";
+        var key = _config["Jwt:Key"] ?? "super_secret_key_1234567890123456";
         var creds = new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)), SecurityAlgorithms.HmacSha256);
         var token = new JwtSecurityToken(claims: new[] { new Claim(ClaimTypes.Name, username) }, expires: DateTime.UtcNow.AddHours(1), signingCredentials: creds);
         var jwt = new JwtSecurityTokenHandler().WriteToken(token);
