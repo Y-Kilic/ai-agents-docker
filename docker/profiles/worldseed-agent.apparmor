@@ -1,0 +1,9 @@
+#include <tunables/global>
+
+profile worldseed-agent flags=(attach_disconnected) {
+    # Basic read/write access within the container
+    /agent/** rwk,
+    /usr/bin/dotnet ix,
+    network inet stream,
+    capability net_bind_service,
+}

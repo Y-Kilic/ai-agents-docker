@@ -168,7 +168,13 @@ Visit: http://localhost:5000 (Blazor Server UI)
 
 3. Orchestrator spins up a Docker container:
 
-docker run -d --rm --name agent-{id} myagent:latest --goal="..."
+```bash
+docker run -d --rm \
+  --name agent-{id} \
+  --security-opt seccomp=./docker/profiles/seccomp-agent.json \
+  --security-opt apparmor=worldseed-agent \
+  myagent:latest --goal="..."
+```
 
 
 4. Agent begins loop: Thought → Tool → Action → Memory
