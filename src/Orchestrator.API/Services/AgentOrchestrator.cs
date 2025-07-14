@@ -20,11 +20,15 @@ public class AgentOrchestrator
     private readonly ConcurrentDictionary<string, int> _logOffsets = new();
     private readonly Data.IUnitOfWork _uow;
     private readonly string _orchestratorUrl;
+    private bool _useOpenAI;
+    private string? _apiKey;
 
     public AgentOrchestrator(Data.IUnitOfWork uow)
     {
         _uow = uow;
         _useLocal = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("USE_LOCAL_AGENT"));
+        _apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+        _useOpenAI = !string.IsNullOrWhiteSpace(_apiKey);
         // Agents always communicate with the API over http://localhost:5000.
         // Containers inherit this value through the ORCHESTRATOR_URL environment
         // variable so logs and memory are posted back to the host API.
@@ -45,12 +49,20 @@ public class AgentOrchestrator
         }
     }
 
+    public LLMConfig GetLLMConfig() => new(_useOpenAI, _apiKey);
+
+    public void SetLLMConfig(LLMConfig config)
+    {
+        _useOpenAI = config.UseOpenAI;
+        _apiKey = config.ApiKey;
+    }
+
     public async Task<string> StartAgentAsync(string goal, AgentType type = AgentType.Default)
     {
-        var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+        var apiKey = _useOpenAI ? _apiKey : null;
 
         var id = Guid.NewGuid().ToString("N");
-      
+
         if (_useLocal)
         {
             var runtimeDir = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../src/Agent.Runtime"));
@@ -110,7 +122,7 @@ public class AgentOrchestrator
             $"AGENT_ID={id}",
             $"ORCHESTRATOR_URL={_orchestratorUrl}"
         };
-      
+
         if (!string.IsNullOrWhiteSpace(apiKey))
             env.Add($"OPENAI_API_KEY={apiKey}");
 
