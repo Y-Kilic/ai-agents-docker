@@ -317,6 +317,7 @@ Add logs and telemetry collection per agent
 Build visual memory graph in Blazor UI
 
 Handle local agent process exit and cleanup
+Add unit tests for core libraries
 
 
 
