@@ -38,10 +38,12 @@ present the runtime falls back to a mock provider that simply echoes prompts.
 ### Agent Connectivity
 
 Agents running in Docker containers need a reachable API endpoint in order to
-report logs and memory entries. The orchestrator always uses
-`http://localhost:5000` for the `ORCHESTRATOR_URL` environment variable so
-containers can talk back to the host API. If you run the orchestrator on a
-different machine, adjust `ORCHESTRATOR_URL` accordingly.
+report logs and memory entries. By default the orchestrator listens on
+`http://0.0.0.0:5000` and exposes this address through the
+`ORCHESTRATOR_URL` environment variable so containers can talk back to the
+host API. If you run the orchestrator on a different machine or network,
+update `ORCHESTRATOR_URL` to a host address accessible from the containers
+(for example `http://host.docker.internal:5000`).
 
 ## ⚙️ Architecture
 
