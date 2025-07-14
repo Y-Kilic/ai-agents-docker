@@ -79,6 +79,9 @@ Task submission
 
 Real-time log and memory inspection
 
+The UI now includes a **Logs** page that polls the API for messages from each
+agent and displays them in real time.
+
 
 
 3. Agent.Runtime
