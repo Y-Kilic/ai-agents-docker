@@ -129,8 +129,6 @@ Separate mounted volumes (/agent/memory)
 
 Optional network isolation
 
-Seccomp & AppArmor profiles enforced
-
 
 Communication via:
 
