@@ -29,6 +29,12 @@ Set the environment variable `USE_LOCAL_AGENT=1` before starting the orchestrato
 and it will launch agent processes directly using `dotnet run` instead of
 spinning up containers.
 
+### OpenAI Configuration
+
+Set the environment variable `OPENAI_API_KEY` before starting the orchestrator
+if you want the agents to use the real OpenAI API. When this variable is not
+present the runtime falls back to a mock provider that simply echoes prompts.
+
 ## ⚙️ Architecture
 
 ```text

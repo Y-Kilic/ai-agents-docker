@@ -41,7 +41,10 @@ public class AgentOrchestrator
 
     public async Task<string> StartAgentAsync(string goal, AgentType type = AgentType.Default)
     {
+        var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+
         var id = Guid.NewGuid().ToString("N");
+      
         if (_useLocal)
         {
             var runtimeDir = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../src/Agent.Runtime"));
@@ -57,6 +60,11 @@ public class AgentOrchestrator
                 RedirectStandardOutput = false,
                 RedirectStandardError = false,
             };
+            if (!string.IsNullOrWhiteSpace(apiKey))
+            {
+                psi.Environment["OPENAI_API_KEY"] = apiKey;
+            }
+
             psi.Environment["AGENT_ID"] = id;
             psi.Environment["ORCHESTRATOR_URL"] = _orchestratorUrl;
 
@@ -83,6 +91,12 @@ public class AgentOrchestrator
             $"AGENT_ID={id}",
             $"ORCHESTRATOR_URL={_orchestratorUrl}"
         };
+      
+        if (!string.IsNullOrWhiteSpace(apiKey))
+            env.Add($"OPENAI_API_KEY={apiKey}");
+
+
+
         if (!AgentProfiles.TryGetProfile(type, out var config))
             config = new AgentConfig("agent", type);
 
