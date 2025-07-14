@@ -1,6 +1,7 @@
 using Docker.DotNet;
 using Docker.DotNet.Models;
 using Shared.Models;
+using Orchestrator.API.Data;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -13,11 +14,12 @@ public class AgentOrchestrator
     private readonly DockerClient? _docker;
     private readonly bool _useLocal;
     private const string ImageName = "worldseed-agent";
-    private readonly ConcurrentDictionary<string, AgentInfo> _agents = new();
     private readonly ConcurrentDictionary<string, Process> _processes = new();
+    private readonly Data.IUnitOfWork _uow;
 
-    public AgentOrchestrator()
+    public AgentOrchestrator(Data.IUnitOfWork uow)
     {
+        _uow = uow;
         _useLocal = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("USE_LOCAL_AGENT"));
         if (!_useLocal)
         {
@@ -51,11 +53,12 @@ public class AgentOrchestrator
             proc.Exited += (s, e) =>
             {
                 _processes.TryRemove(id, out _);
-                _agents.TryRemove(id, out _);
+                _uow.Agents.Remove(id);
                 proc.Dispose();
             };
             _processes[id] = proc;
-            _agents[id] = new AgentInfo(id, type);
+            _uow.Agents.Add(new AgentInfo(id, type));
+            await _uow.SaveChangesAsync();
             return id;
         }
 
@@ -104,12 +107,13 @@ public class AgentOrchestrator
         await _docker.Containers.StartContainerAsync(container.ID, null);
 
         var info = new AgentInfo(container.ID, type);
-        _agents[container.ID] = info;
+        _uow.Agents.Add(info);
+        await _uow.SaveChangesAsync();
 
         return container.ID;
     }
 
-    public IEnumerable<AgentInfo> ListAgents() => _agents.Values;
+    public IEnumerable<AgentInfo> ListAgents() => _uow.Agents.GetAll();
 
     public async Task StopAgentAsync(string id)
     {
@@ -124,14 +128,14 @@ public class AgentOrchestrator
                 catch { }
                 proc.Dispose();
             }
-            _agents.TryRemove(id, out _);
+            _uow.Agents.Remove(id);
+            await _uow.SaveChangesAsync();
             return;
         }
 
-        if (_agents.TryRemove(id, out _))
-        {
-            await _docker!.Containers.StopContainerAsync(id, new ContainerStopParameters());
-        }
+        _uow.Agents.Remove(id);
+        await _uow.SaveChangesAsync();
+        await _docker!.Containers.StopContainerAsync(id, new ContainerStopParameters());
     }
 
     private async Task EnsureImageAsync()

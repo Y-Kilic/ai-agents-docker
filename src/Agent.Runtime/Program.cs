@@ -33,7 +33,8 @@ static async Task RunAsync(string[] args)
 
     Console.WriteLine($"Goal received: {goal}");
 
-    while (true)
+    var memory = new List<string>();
+    for (var i = 0; i < 3; i++)
     {
         var parts = goal.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length == 0)
@@ -53,10 +54,14 @@ static async Task RunAsync(string[] args)
         }
 
         var result = await tool.ExecuteAsync(toolInput);
+        memory.Add($"{toolName}:{toolInput} => {result}");
         Console.WriteLine(result);
 
-        // For this example we complete after one tool execution
-        break;
+        goal = result;
     }
+
+    Console.WriteLine("Memory:");
+    foreach (var entry in memory)
+        Console.WriteLine(entry);
 }
 

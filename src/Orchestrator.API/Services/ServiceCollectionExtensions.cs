@@ -6,6 +6,7 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddAgentOrchestrator(this IServiceCollection services)
     {
+        services.AddSingleton<Data.IUnitOfWork, Data.InMemoryUnitOfWork>();
         services.AddSingleton<AgentOrchestrator>();
         return services;
     }
