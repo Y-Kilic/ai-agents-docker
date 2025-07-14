@@ -1,6 +1,7 @@
 using Docker.DotNet;
 using Docker.DotNet.Models;
 using Shared.Models;
+using System.Collections.Concurrent;
 
 namespace Orchestrator.API.Services;
 
@@ -8,6 +9,7 @@ public class AgentOrchestrator
 {
     private readonly DockerClient _docker;
     private const string ImageName = "worldseed-agent";
+    private readonly ConcurrentDictionary<string, AgentInfo> _agents = new();
 
     public AgentOrchestrator()
     {
@@ -34,7 +36,21 @@ public class AgentOrchestrator
         });
 
         await _docker.Containers.StartContainerAsync(container.ID, null);
+
+        var info = new AgentInfo(container.ID, type);
+        _agents[container.ID] = info;
+
         return container.ID;
+    }
+
+    public IEnumerable<AgentInfo> ListAgents() => _agents.Values;
+
+    public async Task StopAgentAsync(string id)
+    {
+        if (_agents.TryRemove(id, out _))
+        {
+            await _docker.Containers.StopContainerAsync(id, new ContainerStopParameters());
+        }
     }
 
     private async Task EnsureImageAsync()

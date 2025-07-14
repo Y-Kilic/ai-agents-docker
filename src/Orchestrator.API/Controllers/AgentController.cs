@@ -25,10 +25,24 @@ public class AgentController : ControllerBase
         return Ok(config);
     }
 
+    [HttpGet("list")]
+    public IActionResult List()
+    {
+        var agents = _orchestrator.ListAgents();
+        return Ok(agents);
+    }
+
     [HttpPost("start")]
     public async Task<IActionResult> Start([FromBody] StartAgentRequest request)
     {
         var id = await _orchestrator.StartAgentAsync(request.Goal, request.Type);
         return Ok(new { id });
+    }
+
+    [HttpPost("{id}/stop")]
+    public async Task<IActionResult> Stop(string id)
+    {
+        await _orchestrator.StopAgentAsync(id);
+        return Ok();
     }
 }

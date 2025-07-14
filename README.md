@@ -159,6 +159,14 @@ curl -X POST "http://localhost:5000/api/agent/start" \
      -d '{"goal":"echo hello"}'
 ```
 
+```bash
+# list running agents
+curl http://localhost:5000/api/agent/list
+
+# stop an agent
+curl -X POST http://localhost:5000/api/agent/<id>/stop
+```
+
 🌐 Access Dashboard
 
 Visit: http://localhost:5000 (Blazor Server UI)
