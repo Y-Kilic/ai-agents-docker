@@ -41,9 +41,16 @@ public class AgentOrchestrator
         if (_useLocal)
         {
             var id = Guid.NewGuid().ToString("N");
-            var psi = new ProcessStartInfo("dotnet", $"run --project ../../src/Agent.Runtime -- {goal}")
+            var runtimeDir = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../src/Agent.Runtime"));
+            if (!Directory.Exists(runtimeDir))
             {
-                WorkingDirectory = Path.Combine(Directory.GetCurrentDirectory(), "..", "Agent.Runtime"),
+                runtimeDir = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "src", "Agent.Runtime"));
+            }
+
+            var projectPath = Path.Combine(runtimeDir, "Agent.Runtime.csproj");
+            var psi = new ProcessStartInfo("dotnet", $"run --project {projectPath} -- {goal}")
+            {
+                WorkingDirectory = runtimeDir,
                 RedirectStandardOutput = false,
                 RedirectStandardError = false,
             };
