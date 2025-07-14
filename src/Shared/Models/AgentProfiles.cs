@@ -11,5 +11,7 @@ public static class AgentProfiles
         { AgentType.Helper, new AgentConfig("Helper Agent", AgentType.Helper) }
     };
 
-    public static bool TryGetProfile(AgentType type, out AgentConfig config) => _profiles.TryGetValue(type, out config);
+    public static bool TryGetProfile(AgentType type,
+        [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out AgentConfig config)
+        => _profiles.TryGetValue(type, out config);
 }
