@@ -80,7 +80,8 @@ Task submission
 Real-time log and memory inspection
 
 The UI now includes a **Logs** page that polls the API for messages from each
-agent and displays them in real time.
+agent and displays them in real time. A new **Memory** page shows the latest
+memory entries reported by each agent.
 
 
 

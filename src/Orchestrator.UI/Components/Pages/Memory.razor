@@ -1,0 +1,83 @@
+@page "/memory"
+@using Shared.Models
+@inject HttpClient Http
+@implements IDisposable
+
+<PageTitle>Memory</PageTitle>
+
+<h1>Agent Memory</h1>
+
+<div class="mb-3">
+    <select class="form-select" value="@selectedAgentId" @onchange="OnAgentChanged">
+        <option value="">-- Select Agent --</option>
+        @foreach (var agent in agents)
+        {
+            <option value="@agent.Id">@agent.Id (@agent.Type)</option>
+        }
+    </select>
+</div>
+
+@if (!string.IsNullOrEmpty(selectedAgentId))
+{
+    <pre class="border p-2" style="height:300px; overflow-y:auto">@string.Join("\n", entries)</pre>
+}
+
+@code {
+    private List<AgentInfo> agents = new();
+    private string? selectedAgentId;
+    private readonly List<string> entries = new();
+    private CancellationTokenSource? _cts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAgents();
+    }
+
+    private async Task LoadAgents()
+    {
+        var result = await Http.GetFromJsonAsync<List<AgentInfo>>("api/agent/list");
+        if (result != null)
+            agents = result;
+    }
+
+    private void OnAgentChanged(ChangeEventArgs e)
+    {
+        _cts?.Cancel();
+        entries.Clear();
+        selectedAgentId = e.Value?.ToString();
+        if (!string.IsNullOrEmpty(selectedAgentId))
+        {
+            _cts = new CancellationTokenSource();
+            _ = PollMemoryAsync(_cts.Token);
+        }
+    }
+
+    private async Task PollMemoryAsync(CancellationToken token)
+    {
+        var timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(token))
+            {
+                await RefreshMemory();
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private async Task RefreshMemory()
+    {
+        if (string.IsNullOrEmpty(selectedAgentId))
+            return;
+
+        var result = await Http.GetFromJsonAsync<List<string>>($"api/memory/{selectedAgentId}");
+        if (result != null && result.Count > 0)
+            entries.AddRange(result);
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+    }
+}
