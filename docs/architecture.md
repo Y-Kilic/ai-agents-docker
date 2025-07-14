@@ -9,7 +9,11 @@ This document outlines the high-level architecture for the WorldSeed template.
 
 ## Sandbox Setup
 
-Agents run in isolated Docker containers with the following safeguards:
+Agents normally run in isolated Docker containers with the following safeguards.
+When Docker is unavailable the orchestrator can fall back to launching the agent
+process locally.
+
+Container safeguards include:
 
 - **Resource Limits** – CPU and memory quotas applied per container.
 - **Volumes** – a dedicated `/agent` volume is mounted for state.

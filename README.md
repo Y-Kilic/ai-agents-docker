@@ -20,6 +20,13 @@ dotnet build WorldSeed.sln
 
 Use `scripts/devtools.ps1` for simple dev workflows.
 
+### Running without Docker
+
+If Docker is not available on your system you can still run the agents locally.
+Set the environment variable `USE_LOCAL_AGENT=1` before starting the orchestrator
+and it will launch agent processes directly using `dotnet run` instead of
+spinning up containers.
+
 ## ⚙️ Architecture
 
 ```text
