@@ -318,8 +318,6 @@ Add custom agent behavior in /Agent.Runtime
 
 Extend the orchestrator controller to support agent types
 
-Secure container sandboxing (AppArmor, seccomp, etc.)
-
 Add logs and telemetry collection per agent
 
 Build visual memory graph in Blazor UI
