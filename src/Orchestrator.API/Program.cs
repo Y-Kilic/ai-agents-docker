@@ -1,6 +1,9 @@
 using Orchestrator.API.Services;
 var builder = WebApplication.CreateBuilder(args);
 
+// Force Kestrel to listen on port 5000 for both development and production.
+builder.WebHost.UseUrls("http://localhost:5000");
+
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
