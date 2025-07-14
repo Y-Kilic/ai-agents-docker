@@ -179,8 +179,13 @@ public class AgentOrchestrator
             return;
 
         var images = await _docker!.Images.ListImagesAsync(new ImagesListParameters());
-        if (images.Any(i => i.RepoTags != null && i.RepoTags.Contains(ImageName)))
+
+        if (images.Any(i =>
+            i.RepoTags != null &&
+            i.RepoTags.Any(tag => tag.StartsWith($"{ImageName}:"))))
+        {
             return;
+        }
 
         throw new InvalidOperationException($"Docker image '{ImageName}' not found. Build it before starting agents.");
     }
