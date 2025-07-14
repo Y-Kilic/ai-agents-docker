@@ -1,37 +1,72 @@
 using Agent.Runtime.Tools;
 using Shared.Models;
 using Shared.LLM;
+using System.Net.Http;
+using System.Net.Http.Json;
 
 var config = AgentProfiles.TryGetProfile(AgentType.Default, out var profile)
     ? profile
     : new AgentConfig("runtime", AgentType.Default);
 
-Console.WriteLine($"Starting agent: {config.Name} ({config.Type})");
+var agentId = Environment.GetEnvironmentVariable("AGENT_ID");
+var orchestratorUrl = Environment.GetEnvironmentVariable("ORCHESTRATOR_URL");
+HttpClient? httpClient = null;
+if (!string.IsNullOrWhiteSpace(agentId) && !string.IsNullOrWhiteSpace(orchestratorUrl))
+{
+    httpClient = new HttpClient { BaseAddress = new Uri(orchestratorUrl) };
+}
+
+await SendLogAsync($"Starting agent: {config.Name} ({config.Type})");
 
 ILLMProvider llmProvider;
 var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
 if (string.IsNullOrWhiteSpace(apiKey))
 {
     llmProvider = new MockOpenAIProvider();
-    Console.WriteLine("Using MockOpenAIProvider");
+    await SendLogAsync("Using MockOpenAIProvider");
 }
 else
 {
     llmProvider = new OpenAIProvider(apiKey);
-    Console.WriteLine("Using OpenAIProvider");
+    await SendLogAsync("Using OpenAIProvider");
 }
 
 ToolRegistry.Initialize(llmProvider);
 
 await RunAsync(args);
 
-static async Task RunAsync(string[] args)
+async Task SendLogAsync(string message)
+{
+    Console.WriteLine(message);
+    if (httpClient != null && agentId != null)
+    {
+        try
+        {
+            await httpClient.PostAsJsonAsync($"api/message/{agentId}", message);
+        }
+        catch { }
+    }
+}
+
+async Task SendMemoryAsync(string entry)
+{
+    if (httpClient != null && agentId != null)
+    {
+        try
+        {
+            await httpClient.PostAsJsonAsync($"api/memory/{agentId}", entry);
+        }
+        catch { }
+    }
+}
+
+async Task RunAsync(string[] args)
 {
     string goal = args.Length > 0
         ? string.Join(" ", args)
         : Environment.GetEnvironmentVariable("GOAL") ?? "echo hello";
 
-    Console.WriteLine($"Goal received: {goal}");
+    await SendLogAsync($"Goal received: {goal}");
 
     var memory = new List<string>();
     for (var i = 0; i < 3; i++)
@@ -39,7 +74,7 @@ static async Task RunAsync(string[] args)
         var parts = goal.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length == 0)
         {
-            Console.WriteLine("No goal specified.");
+            await SendLogAsync("No goal specified.");
             break;
         }
 
@@ -49,19 +84,20 @@ static async Task RunAsync(string[] args)
         var tool = ToolRegistry.Get(toolName);
         if (tool is null)
         {
-            Console.WriteLine($"Tool '{toolName}' not found.");
+            await SendLogAsync($"Tool '{toolName}' not found.");
             break;
         }
 
         var result = await tool.ExecuteAsync(toolInput);
         memory.Add($"{toolName}:{toolInput} => {result}");
-        Console.WriteLine(result);
+        await SendMemoryAsync($"{toolName}:{toolInput} => {result}");
+        await SendLogAsync(result);
 
         goal = result;
     }
 
-    Console.WriteLine("Memory:");
+    await SendLogAsync("Memory:");
     foreach (var entry in memory)
-        Console.WriteLine(entry);
+        await SendLogAsync(entry);
 }
 
