@@ -116,6 +116,8 @@ Separate mounted volumes (/agent/memory)
 
 Optional network isolation
 
+Seccomp & AppArmor profiles enforced
+
 
 Communication via:
 
@@ -270,6 +272,7 @@ Mock LLM provider       ✅
 When OPENAI_API_KEY is not set, the runtime uses a mock provider that echoes prompts.
 Agent memory / embeddings	⚠️ Optional
 Tool execution framework	✅
+Container sandboxing    ✅
 Inter-agent comms	🚧 Planned
 
 
