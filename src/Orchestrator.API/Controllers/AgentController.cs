@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Orchestrator.API.Services;
 using Shared.Models;
 
 namespace Orchestrator.API.Controllers;
@@ -7,6 +8,12 @@ namespace Orchestrator.API.Controllers;
 [Route("api/[controller]")]
 public class AgentController : ControllerBase
 {
+    private readonly AgentOrchestrator _orchestrator;
+
+    public AgentController(AgentOrchestrator orchestrator)
+    {
+        _orchestrator = orchestrator;
+    }
     [HttpGet]
     public IActionResult GetConfig([FromQuery] AgentType type = AgentType.Default)
     {
@@ -16,5 +23,12 @@ public class AgentController : ControllerBase
         }
 
         return Ok(config);
+    }
+
+    [HttpPost("start")]
+    public async Task<IActionResult> Start([FromBody] StartAgentRequest request)
+    {
+        var id = await _orchestrator.StartAgentAsync(request.Goal, request.Type);
+        return Ok(new { id });
     }
 }

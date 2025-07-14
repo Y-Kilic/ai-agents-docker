@@ -151,6 +151,14 @@ docker build -f ./docker/agent.Dockerfile -t myagent:latest .
 cd src/Orchestrator.API
 dotnet run
 
+Once running, start an agent with:
+
+```bash
+curl -X POST "http://localhost:5000/api/agent/start" \
+     -H "Content-Type: application/json" \
+     -d '{"goal":"echo hello"}'
+```
+
 🌐 Access Dashboard
 
 Visit: http://localhost:5000 (Blazor Server UI)
