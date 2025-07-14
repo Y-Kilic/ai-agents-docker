@@ -1,0 +1,9 @@
+{
+    "defaultAction": "SCMP_ACT_ERRNO",
+    "architectures": ["SCMP_ARCH_X86_64"],
+    "syscalls": [
+        {"names": ["exit", "exit_group", "read", "write", "futex"], "action": "SCMP_ACT_ALLOW"},
+        {"names": ["brk", "mmap", "mprotect", "munmap"], "action": "SCMP_ACT_ALLOW"},
+        {"names": ["clone", "execve"], "action": "SCMP_ACT_ALLOW"}
+    ]
+}
