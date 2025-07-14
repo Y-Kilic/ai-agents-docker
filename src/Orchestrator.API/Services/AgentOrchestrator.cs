@@ -16,6 +16,8 @@ public class AgentOrchestrator
     private const string ImageName = "worldseed-agent";
     private readonly ConcurrentDictionary<string, Process> _processes = new();
     private readonly ConcurrentDictionary<string, string> _containers = new();
+    private readonly ConcurrentDictionary<string, List<string>> _localLogs = new();
+    private readonly ConcurrentDictionary<string, int> _logOffsets = new();
     private readonly Data.IUnitOfWork _uow;
     private readonly string _orchestratorUrl;
 
@@ -61,8 +63,8 @@ public class AgentOrchestrator
             var psi = new ProcessStartInfo("dotnet", $"run --project {projectPath} -- {goal}")
             {
                 WorkingDirectory = runtimeDir,
-                RedirectStandardOutput = false,
-                RedirectStandardError = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
             };
             if (!string.IsNullOrWhiteSpace(apiKey))
             {
@@ -72,8 +74,21 @@ public class AgentOrchestrator
             psi.Environment["AGENT_ID"] = id;
             psi.Environment["ORCHESTRATOR_URL"] = _orchestratorUrl;
 
-            var proc = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start local agent process");
-            proc.EnableRaisingEvents = true;
+            var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
+            var logList = new List<string>();
+            _localLogs[id] = logList;
+            _logOffsets[id] = 0;
+            proc.OutputDataReceived += (s, e) => { if (e.Data != null) logList.Add(e.Data); };
+            proc.ErrorDataReceived += (s, e) => { if (e.Data != null) logList.Add(e.Data); };
+            proc.Exited += (s, e) =>
+            {
+                _processes.TryRemove(id, out _);
+                _uow.Agents.Remove(id);
+                proc.Dispose();
+            };
+            proc.Start();
+            proc.BeginOutputReadLine();
+            proc.BeginErrorReadLine();
             proc.Exited += (s, e) =>
             {
                 _processes.TryRemove(id, out _);
@@ -137,6 +152,7 @@ public class AgentOrchestrator
         await _docker.Containers.StartContainerAsync(container.ID, null);
 
         _containers[id] = container.ID;
+        _logOffsets[id] = 0;
         var info = new AgentInfo(id, type);
         _uow.Agents.Add(info);
         await _uow.SaveChangesAsync();
@@ -187,5 +203,51 @@ public class AgentOrchestrator
         }
 
         throw new InvalidOperationException($"Docker image '{ImageName}' not found. Build it before starting agents.");
+    }
+
+    public async Task<List<string>> GetMessagesAsync(string id)
+    {
+        var lines = await GetNewLogLinesAsync(id);
+        return lines.Where(l => !l.StartsWith("MEMORY:")).ToList();
+    }
+
+    public async Task<List<string>> GetMemoryAsync(string id)
+    {
+        var lines = await GetNewLogLinesAsync(id);
+        return lines.Where(l => l.StartsWith("MEMORY:")).Select(l => l.Substring(7).Trim()).ToList();
+    }
+
+    private async Task<List<string>> GetNewLogLinesAsync(string id)
+    {
+        if (_useLocal)
+        {
+            if (!_localLogs.TryGetValue(id, out var buf))
+                return new List<string>();
+            var offset = _logOffsets.GetOrAdd(id, 0);
+            if (offset >= buf.Count)
+                return new List<string>();
+            var lines = buf.Skip(offset).ToList();
+            _logOffsets[id] = offset + lines.Count;
+            return lines;
+        }
+
+        if (!_containers.TryGetValue(id, out var containerId))
+            return new List<string>();
+
+        var psi = new ProcessStartInfo("docker", $"logs {containerId}")
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        };
+        var proc = Process.Start(psi) ?? throw new InvalidOperationException("failed to fetch logs");
+        var content = await proc.StandardOutput.ReadToEndAsync();
+        proc.WaitForExit();
+        var linesAll = content.Split('\n', StringSplitOptions.RemoveEmptyEntries).ToList();
+        var off = _logOffsets.GetOrAdd(id, 0);
+        if (off >= linesAll.Count)
+            return new List<string>();
+        var newLines = linesAll.Skip(off).ToList();
+        _logOffsets[id] = off + newLines.Count;
+        return newLines;
     }
 }

@@ -18,6 +18,10 @@ public class AgentOrchestratorTests
 
         Assert.Contains(uow.Agents.GetAll(), a => a.Id == id);
 
+        await Task.Delay(1500);
+        _ = await orchestrator.GetMessagesAsync(id);
+        _ = await orchestrator.GetMemoryAsync(id);
+
         await orchestrator.StopAgentAsync(id);
 
         Assert.DoesNotContain(uow.Agents.GetAll(), a => a.Id == id);
