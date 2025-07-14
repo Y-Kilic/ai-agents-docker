@@ -35,6 +35,14 @@ Set the environment variable `OPENAI_API_KEY` before starting the orchestrator
 if you want the agents to use the real OpenAI API. When this variable is not
 present the runtime falls back to a mock provider that simply echoes prompts.
 
+### Agent Connectivity
+
+Agents running in Docker containers need a reachable API endpoint in order to
+report logs and memory entries. The orchestrator always uses
+`http://localhost:5000` for the `ORCHESTRATOR_URL` environment variable so
+containers can talk back to the host API. If you run the orchestrator on a
+different machine, adjust `ORCHESTRATOR_URL` accordingly.
+
 ## ⚙️ Architecture
 
 ```text

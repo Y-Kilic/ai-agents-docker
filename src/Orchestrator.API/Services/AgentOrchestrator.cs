@@ -23,7 +23,11 @@ public class AgentOrchestrator
     {
         _uow = uow;
         _useLocal = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("USE_LOCAL_AGENT"));
-        _orchestratorUrl = Environment.GetEnvironmentVariable("ORCHESTRATOR_URL") ?? "http://localhost:5000";
+        // Agents always communicate with the API over http://localhost:5000.
+        // Containers inherit this value through the ORCHESTRATOR_URL environment
+        // variable so logs and memory are posted back to the host API.
+        _orchestratorUrl = Environment.GetEnvironmentVariable("ORCHESTRATOR_URL")
+            ?? "http://localhost:5000";
         if (!_useLocal)
         {
             try

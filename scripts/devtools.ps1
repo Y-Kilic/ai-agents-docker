@@ -4,7 +4,12 @@ param(
 )
 
 switch ($Action) {
-    'start' { dotnet run --project ../src/Orchestrator.API }
+    'start' {
+        if (-not $env:ORCHESTRATOR_URL) {
+            $env:ORCHESTRATOR_URL = 'http://localhost:5000'
+        }
+        dotnet run --project ../src/Orchestrator.API
+    }
     'ui'    { dotnet run --project ../src/Orchestrator.UI }
     'stop'  {
         if (-not $Id) { Write-Host "Specify agent id"; break }
