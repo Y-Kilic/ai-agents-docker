@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Shared.Messaging;
+using Orchestrator.API.Services;
 
 namespace Orchestrator.API.Controllers;
 
@@ -7,17 +7,17 @@ namespace Orchestrator.API.Controllers;
 [Route("api/[controller]")]
 public class MessageController : ControllerBase
 {
-    [HttpPost("{id}")]
-    public IActionResult Send(string id, [FromBody] string message)
+    private readonly AgentOrchestrator _orchestrator;
+
+    public MessageController(AgentOrchestrator orchestrator)
     {
-        MessageHub.Send(id, message);
-        return Ok();
+        _orchestrator = orchestrator;
     }
 
     [HttpGet("{id}")]
-    public IActionResult Receive(string id)
+    public async Task<IActionResult> Receive(string id)
     {
-        var msgs = MessageHub.Receive(id);
+        var msgs = await _orchestrator.GetMessagesAsync(id);
         return Ok(msgs);
     }
 }
