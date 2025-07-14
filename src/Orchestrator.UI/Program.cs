@@ -9,8 +9,8 @@ builder.Services.AddRazorComponents()
 // Configure a named HttpClient used by the UI components
 builder.Services.AddHttpClient("api", o =>
 {
-    // The UI always communicates with the API at http://localhost:5000
-    o.BaseAddress = new Uri("http://localhost:5000");
+    // The UI always communicates with the API over https
+    o.BaseAddress = new Uri("https://localhost:5001");
 });
 
 // Allow injecting HttpClient without specifying the name
