@@ -47,6 +47,13 @@ public class AgentOrchestrator
             };
 
             var proc = Process.Start(psi) ?? throw new InvalidOperationException("Failed to start local agent process");
+            proc.EnableRaisingEvents = true;
+            proc.Exited += (s, e) =>
+            {
+                _processes.TryRemove(id, out _);
+                _agents.TryRemove(id, out _);
+                proc.Dispose();
+            };
             _processes[id] = proc;
             _agents[id] = new AgentInfo(id, type);
             return id;
