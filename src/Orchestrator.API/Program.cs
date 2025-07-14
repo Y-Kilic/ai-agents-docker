@@ -5,6 +5,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
+builder.Services.AddSingleton<Orchestrator.API.Logging.IAgentLogStore,
+    Orchestrator.API.Logging.InMemoryAgentLogStore>();
 
 var app = builder.Build();
 
