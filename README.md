@@ -10,6 +10,16 @@ The frontend is implemented in **Blazor Server** to provide a live dashboard, ta
 
 ---
 
+## Getting Started
+
+This repository now includes a .NET solution with starter projects. To build the entire solution run:
+
+```bash
+dotnet build WorldSeed.sln
+```
+
+Use `scripts/devtools.ps1` for simple dev workflows.
+
 ## ⚙️ Architecture
 
 ```text
