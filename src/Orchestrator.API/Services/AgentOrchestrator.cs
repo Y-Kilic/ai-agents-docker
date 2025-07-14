@@ -112,7 +112,7 @@ public class AgentOrchestrator
 
         var hostConfig = new HostConfig
         {
-            AutoRemove = true,
+            AutoRemove = false,
             Memory = 256 * 1024 * 1024, // 256MB limit
             NanoCPUs = 1_000_000_000,   // 1 CPU
             NetworkMode = "bridge",
