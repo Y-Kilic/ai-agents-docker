@@ -1,0 +1,65 @@
+@page "/agents"
+@using Shared.Models
+@inject HttpClient Http
+
+<PageTitle>Agents</PageTitle>
+
+<h1>Agents</h1>
+
+<div class="mb-3">
+    <input class="form-control" placeholder="Goal" @bind="goal" />
+</div>
+<div class="mb-3">
+    <select class="form-select" @bind="selectedType">
+        @foreach (var type in Enum.GetValues<AgentType>())
+        {
+            <option value="@type">@type</option>
+        }
+    </select>
+</div>
+<button class="btn btn-primary" @onclick="StartAgent">Start Agent</button>
+
+<h2 class="mt-4">Running Agents</h2>
+<ul>
+    @foreach (var agent in agents)
+    {
+        <li>@agent.Id (@agent.Type)
+            <button class="btn btn-sm btn-danger ms-2" @onclick="() => StopAgent(agent.Id)">Stop</button>
+        </li>
+    }
+</ul>
+
+@code {
+    private string goal = string.Empty;
+    private AgentType selectedType = AgentType.Default;
+    private List<AgentInfo> agents = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAgents();
+    }
+
+    private async Task LoadAgents()
+    {
+        var result = await Http.GetFromJsonAsync<List<AgentInfo>>("api/agent/list");
+        if (result != null)
+            agents = result;
+    }
+
+    private async Task StartAgent()
+    {
+        var request = new StartAgentRequest(goal, selectedType);
+        var response = await Http.PostAsJsonAsync("api/agent/start", request);
+        if (response.IsSuccessStatusCode)
+        {
+            await LoadAgents();
+            goal = string.Empty;
+        }
+    }
+
+    private async Task StopAgent(string id)
+    {
+        await Http.PostAsync($"api/agent/{id}/stop", null);
+        await LoadAgents();
+    }
+}
