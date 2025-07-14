@@ -106,17 +106,20 @@ public class AgentOrchestrator
             Name = volumeName
         });
 
+        var securityOptions = new List<string>();
+        if (!OperatingSystem.IsWindows())
+        {
+            securityOptions.Add("apparmor=worldseed-agent");
+            securityOptions.Add($"seccomp={Path.GetFullPath("docker/profiles/seccomp-agent.json")}");
+        }
+
         var hostConfig = new HostConfig
         {
             AutoRemove = true,
             Memory = 256 * 1024 * 1024, // 256MB limit
             NanoCPUs = 1_000_000_000,   // 1 CPU
             NetworkMode = "bridge",
-            SecurityOpt = new List<string>
-            {
-                "apparmor=worldseed-agent",
-                $"seccomp={Path.GetFullPath("docker/profiles/seccomp-agent.json")}"
-            },
+            SecurityOpt = securityOptions,
             Mounts = new List<Mount>
             {
                 new()
