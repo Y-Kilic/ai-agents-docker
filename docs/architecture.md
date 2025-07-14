@@ -18,3 +18,4 @@ Agents run in isolated Docker containers with the following safeguards:
 - **AppArmor** – profile `worldseed-agent` confines filesystem and network access.
 
 The orchestrator passes these options when launching each container.
+This logic is implemented in `AgentOrchestrator` via Docker.DotNet's `HostConfig` settings.

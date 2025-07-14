@@ -2,6 +2,8 @@ using Docker.DotNet;
 using Docker.DotNet.Models;
 using Shared.Models;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
 
 namespace Orchestrator.API.Services;
 
@@ -25,14 +27,39 @@ public class AgentOrchestrator
         if (!AgentProfiles.TryGetProfile(type, out var config))
             config = new AgentConfig("agent", type);
 
+        var volumeName = $"agent-{Guid.NewGuid():N}";
+        await _docker.Volumes.CreateAsync(new VolumesCreateParameters
+        {
+            Name = volumeName
+        });
+
+        var hostConfig = new HostConfig
+        {
+            AutoRemove = true,
+            Memory = 256 * 1024 * 1024, // 256MB limit
+            NanoCPUs = 1_000_000_000,   // 1 CPU
+            NetworkMode = "none",
+            SecurityOpt = new List<string>
+            {
+                "apparmor=worldseed-agent",
+                $"seccomp={Path.GetFullPath("docker/profiles/seccomp-agent.json")}"
+            },
+            Mounts = new List<Mount>
+            {
+                new()
+                {
+                    Type = "volume",
+                    Source = volumeName,
+                    Target = "/agent"
+                }
+            }
+        };
+
         var container = await _docker.Containers.CreateContainerAsync(new CreateContainerParameters
         {
             Image = ImageName,
             Env = env,
-            HostConfig = new HostConfig
-            {
-                AutoRemove = true
-            }
+            HostConfig = hostConfig
         });
 
         await _docker.Containers.StartContainerAsync(container.ID, null);
