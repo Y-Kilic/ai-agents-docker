@@ -23,7 +23,11 @@ public class AgentOrchestrator
     {
         _uow = uow;
         _useLocal = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("USE_LOCAL_AGENT"));
-        _orchestratorUrl = Environment.GetEnvironmentVariable("ORCHESTRATOR_URL") ?? "http://localhost:5000";
+        // Agents running in Docker containers cannot reach "localhost" on the host
+        // machine. Use host.docker.internal by default so agents can post logs
+        // and memory back to the API without additional configuration.
+        _orchestratorUrl = Environment.GetEnvironmentVariable("ORCHESTRATOR_URL")
+            ?? "http://host.docker.internal:5000";
         if (!_useLocal)
         {
             try
