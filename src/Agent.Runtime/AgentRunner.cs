@@ -22,7 +22,8 @@ public static class AgentRunner
                 : $"--- Starting loop {i + 1} of {loops} ---";
             log(loopMessage);
 
-            var action = await PlanNextAction(goal, nextTask, memory, llmProvider, log);
+            var loopsLeft = loops <= 0 ? "unlimited" : (loops - i).ToString();
+            var action = await PlanNextAction(goal, nextTask, loopsLeft, memory, llmProvider, log);
             log($"Planner returned action: '{action}'");
 
             if (string.Equals(action, "done", StringComparison.OrdinalIgnoreCase))
@@ -42,6 +43,25 @@ public static class AgentRunner
             var toolName = parts[0];
             var toolInput = parts.Length > 1 ? parts[1] : string.Empty;
             log($"Parsed toolName: '{toolName}' input: '{toolInput}'");
+
+            bool madeProgress = !memory.LastOrDefault()?.StartsWith($"{toolName} {toolInput}", StringComparison.OrdinalIgnoreCase) ?? true;
+            if (!madeProgress)
+            {
+                toolName = "chat";
+                toolInput = $"We just repeated the same command and made no progress. Summarise what we know and decide the next DISTINCT step toward '{goal}'.";
+            }
+
+            var lowValue =
+                toolName.Equals("list", StringComparison.OrdinalIgnoreCase) && memory.Any(m => m.StartsWith("list ")) ||
+                toolName.Equals("echo", StringComparison.OrdinalIgnoreCase) && !memory.Any(m => m.StartsWith("chat "));
+
+            if (lowValue)
+            {
+                log($"'{toolName}' now would yield no new insight. Switching to chat.");
+                toolName = "chat";
+                toolInput = $"Using '{toolName}' here is redundant. Propose a DIFFERENT step or say DONE if we can finish.";
+            }
+
             log($"Looking up tool '{toolName}' among: {string.Join(", ", ToolRegistry.GetToolNames())}");
 
             var tool = ToolRegistry.Get(toolName);
@@ -72,6 +92,16 @@ public static class AgentRunner
             }
 
             log(result);
+            if (toolName == "chat")
+            {
+                var canFinish = await llmProvider.CompleteAsync(
+                    "Based on our conversation so far, can you state the single best supplement " +
+                    "with a one-line rationale and then say DONE? Answer 'yes' or 'no'.");
+                if (canFinish.TrimStart().StartsWith("y", StringComparison.OrdinalIgnoreCase))
+                {
+                    nextTask = "Answer the best supplement now and append DONE.";
+                }
+            }
             if (executed)
             {
                 nextTask = $"Previous result: {result}. Determine the next step to achieve the goal.";
@@ -97,19 +127,28 @@ public static class AgentRunner
         return memory;
     }
 
-    private static async Task<string> PlanNextAction(string goal, string context, List<string> memory, ILLMProvider llmProvider, Action<string> log, int attempts = 0)
+    private static async Task<string> PlanNextAction(string goal, string context, string loopsLeft, List<string> memory, ILLMProvider llmProvider, Action<string> log, int attempts = 0)
     {
         var tools = string.Join(", ", ToolRegistry.GetToolNames());
         var mem = memory.Count == 0 ? "none" : string.Join("; ", memory);
-        var prompt =
-            $"You are an autonomous agent working toward the goal: '{goal}'." +
-            $" The last result was: '{context}'." +
-            $" Past actions: {mem}." +
-            $" Available tools: {tools}." +
-            " Decide on the next best tool and input to achieve the goal." +
-            " Respond ONLY with '<tool> <input>' using one of the tool names above." +
-            " If unsure which tool fits, use 'chat' with a helpful question." +
-            " Reply with 'DONE' when the goal is complete.";
+        var prompt = $@"You are an autonomous agent working toward the goal: '{goal}'.
+Loops remaining (including this one): {loopsLeft}.
+Last result: '{context}'.
+Past actions: {mem}.
+Available tools: {tools}
+
+**CRITICAL** – Finish in as few steps as possible.
+Respond ONLY with:
+    <toolName> <input>
+or
+    DONE";
+
+        prompt += @"
+You should answer DONE immediately when:
+* You already possess enough information to recommend the single best supplement
+  (write it with a one-line justification), OR
+* The remaining unknowns would not change the top recommendation.
+If a question still matters to rank items, ask it with 'chat'.";
 
         if (attempts > 0)
             prompt += " Your last response did not follow this format.";
@@ -131,7 +170,7 @@ public static class AgentRunner
         if (potentialToolName != null && !ToolRegistry.GetToolNames().Contains(potentialToolName, StringComparer.OrdinalIgnoreCase) && attempts < 2)
         {
             log($"Unrecognized tool '{potentialToolName}'. Retrying prompt.");
-            return await PlanNextAction(goal, context, memory, llmProvider, log, attempts + 1);
+            return await PlanNextAction(goal, context, loopsLeft, memory, llmProvider, log, attempts + 1);
         }
 
         return line;

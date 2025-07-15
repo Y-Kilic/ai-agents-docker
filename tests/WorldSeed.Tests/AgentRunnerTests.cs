@@ -12,8 +12,10 @@ public class AgentRunnerTests
         {
             "chat What is the capital of France?",
             "The capital of France is Paris.",
+            "no",
             "chat What is the capital of Belgium?",
-            "The capital of Belgium is Brussels."
+            "The capital of Belgium is Brussels.",
+            "no"
         });
 
         var memory = await AgentRunner.RunAsync(
@@ -65,8 +67,10 @@ public class AgentRunnerTests
         {
             "chat step one",
             "result one",
+            "no",
             "chat step two",
             "result two",
+            "no",
             "done"
         });
 
@@ -84,13 +88,14 @@ public class AgentRunnerTests
         {
             "chat hi",
             "pong",
+            "no",
             "done"
         });
 
         await AgentRunner.RunAsync("test", provider, 0, _ => { });
 
         Assert.Contains("History: none", provider.Prompts[1]);
-        Assert.Contains("chat hi => pong", provider.Prompts[2]);
+        Assert.Contains("chat hi => pong", provider.Prompts[3]);
     }
 
     [Fact]
