@@ -10,6 +10,7 @@ public static class ToolRegistry
 
     public static void Initialize(ILLMProvider llmProvider)
     {
+        _tools.Clear();
         // Register built-in tools
         Register(new EchoTool());
         Register(new ChatTool(llmProvider));
