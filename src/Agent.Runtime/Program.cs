@@ -63,7 +63,7 @@ async Task RunAsync(string[] args)
             break;
         }
 
-        var parts = action.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+        var parts = action.Split(new[] { ' ', ':' }, 2, StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length == 0)
         {
             SendLog("Planner returned no action.");
@@ -77,13 +77,13 @@ async Task RunAsync(string[] args)
         if (tool is null)
         {
             SendLog($"Tool '{toolName}' not found. Skipping this step.");
-            memory.Add($"unknown:{toolName} -> no execution");
+            memory.Add($"unknown {toolName} -> no execution");
             continue;
         }
 
         var result = await tool.ExecuteAsync(toolInput);
-        memory.Add($"{toolName}:{toolInput} => {result}");
-        SendLog($"MEMORY: {toolName}:{toolInput} => {result}");
+        memory.Add($"{toolName} {toolInput} => {result}");
+        SendLog($"MEMORY: {toolName} {toolInput} => {result}");
         SendLog(result);
 
         goal = result;
