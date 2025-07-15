@@ -4,6 +4,7 @@
   </PropertyGroup>
 
   <Target Name="BuildWorldseedAgentImage" AfterTargets="Build" Condition="'$(MSBuildProjectName)' == 'Orchestrator.API'">
+    <Exec Command="dotnet build $(RepoRoot)src/Agent.Runtime/Agent.Runtime.csproj -c Release" />
     <Exec Command="docker --version" IgnoreExitCode="true" LogStandardErrorAsError="false">
       <Output TaskParameter="ExitCode" PropertyName="DockerAvailable" />
     </Exec>

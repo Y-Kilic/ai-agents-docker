@@ -207,6 +207,8 @@ dotnet build ./src
 docker build -f ./docker/agent.Dockerfile -t worldseed-agent:latest .
 
 Building the solution automatically rebuilds this image to ensure it stays up-to-date.
+The build also compiles the Agent.Runtime project in Release mode so the Docker
+context contains the latest binaries.
 
 ▶️ Run Orchestrator Locally
 
