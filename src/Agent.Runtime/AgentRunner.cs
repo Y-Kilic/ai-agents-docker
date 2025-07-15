@@ -25,6 +25,7 @@ public static class AgentRunner
             }
 
             var parts = action.Split(new[] { ' ', ':' }, 2, StringSplitOptions.RemoveEmptyEntries);
+            log($"Parsed parts: {string.Join(", ", parts)}");
             if (parts.Length == 0)
             {
                 log("Planner returned no action.");
@@ -33,6 +34,7 @@ public static class AgentRunner
 
             var toolName = parts[0];
             var toolInput = parts.Length > 1 ? parts[1] : string.Empty;
+            log($"Parsed toolName: '{toolName}' input: '{toolInput}'");
 
             var tool = ToolRegistry.Get(toolName);
             string result;
@@ -85,6 +87,7 @@ public static class AgentRunner
         log($"PlanNextAction result: {result}");
 
         var line = result.Split('\n')[0].Trim().Trim('"', '.', '!');
+        log($"PlanNextAction parsed line: {line}");
         return line;
     }
 }
