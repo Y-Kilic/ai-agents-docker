@@ -8,12 +8,15 @@ public static class AgentRunner
     public static async Task<List<string>> RunAsync(string goal, ILLMProvider llmProvider, int loops = 3, Action<string>? log = null)
     {
         log ??= Console.WriteLine;
-        ToolRegistry.Initialize(llmProvider);
         var memory = new List<string>();
+        ToolRegistry.Initialize(llmProvider, memory);
 
-        for (var i = 0; i < loops; i++)
+        var i = 0;
+        while (loops <= 0 || i < loops)
         {
-            var loopMessage = $"--- Starting loop {i + 1} of {loops} ---";
+            var loopMessage = loops <= 0
+                ? $"--- Starting loop {i + 1} ---"
+                : $"--- Starting loop {i + 1} of {loops} ---";
             log(loopMessage);
 
             var action = await PlanNextAction(goal, memory, llmProvider, log);
@@ -64,6 +67,7 @@ public static class AgentRunner
 
             log(result);
             goal = result;
+            i++;
         }
 
         log("--- Final Memory ---");
@@ -90,6 +94,13 @@ public static class AgentRunner
 
         var line = result.Split('\n')[0].Trim().Trim('"', '.', '!');
         log($"PlanNextAction parsed line: {line}");
+
+        if (result.Contains("DONE", StringComparison.OrdinalIgnoreCase))
+        {
+            log("LLM signaled DONE");
+            return "done";
+        }
+
         return line;
     }
 }

@@ -8,11 +8,12 @@ public static class ToolRegistry
 {
     private static readonly ConcurrentDictionary<string, ITool> _tools = new(StringComparer.OrdinalIgnoreCase);
 
-    public static void Initialize(ILLMProvider llmProvider)
+    public static void Initialize(ILLMProvider llmProvider, List<string> memory)
     {
+        _tools.Clear();
         // Register built-in tools
         Register(new EchoTool());
-        Register(new ChatTool(llmProvider));
+        Register(new ChatTool(llmProvider, memory));
         Register(new ListTool(llmProvider));
     }
 

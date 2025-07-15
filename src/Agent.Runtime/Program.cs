@@ -38,7 +38,7 @@ async Task RunAsync(string[] args)
 
     var loops = 3;
     if (int.TryParse(Environment.GetEnvironmentVariable("LOOP_COUNT"), out var parsed))
-        loops = parsed;
+        loops = parsed; // 0 or negative = unlimited loops
 
     await AgentRunner.RunAsync(goal, llmProvider, loops, SendLog);
 }
