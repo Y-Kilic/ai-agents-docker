@@ -27,6 +27,22 @@ public class AgentRunnerTests
         Assert.Equal("chat What is the capital of Belgium? => The capital of Belgium is Brussels.", memory[1]);
     }
 
+    [Fact]
+    public async Task RunAsync_MissingTool_LogsAvailableTools()
+    {
+        var provider = new SequenceLLMProvider(new[]
+        {
+            "foo hello",
+            "fallback"
+        });
+
+        var logs = new List<string>();
+        await AgentRunner.RunAsync("test", provider, 1, logs.Add);
+
+        Assert.Contains(logs, l => l.Contains("Looking up tool 'foo'"));
+        Assert.Contains(logs, l => l.Contains("Tool 'foo' not found"));
+    }
+
     private class SequenceLLMProvider : ILLMProvider
     {
         private readonly Queue<string> _responses;

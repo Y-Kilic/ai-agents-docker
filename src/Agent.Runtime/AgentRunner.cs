@@ -35,6 +35,7 @@ public static class AgentRunner
             var toolName = parts[0];
             var toolInput = parts.Length > 1 ? parts[1] : string.Empty;
             log($"Parsed toolName: '{toolName}' input: '{toolInput}'");
+            log($"Looking up tool '{toolName}' among: {string.Join(", ", ToolRegistry.GetToolNames())}");
 
             var tool = ToolRegistry.Get(toolName);
             string result;
