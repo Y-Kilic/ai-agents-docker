@@ -20,4 +20,11 @@ public class MessageController : ControllerBase
         var msgs = await _orchestrator.GetMessagesAsync(id);
         return Ok(msgs);
     }
+
+    [HttpGet("{id}/all")]
+    public async Task<IActionResult> ReceiveAll(string id)
+    {
+        var msgs = await _orchestrator.GetAllMessagesAsync(id);
+        return Ok(msgs);
+    }
 }

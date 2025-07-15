@@ -225,6 +225,12 @@ public class AgentOrchestrator
         return lines.Where(l => !l.StartsWith("MEMORY:")).ToList();
     }
 
+    public async Task<List<string>> GetAllMessagesAsync(string id)
+    {
+        var lines = await GetAllLogLinesAsync(id);
+        return lines.Where(l => !l.StartsWith("MEMORY:")).ToList();
+    }
+
     public async Task<List<string>> GetMemoryAsync(string id)
     {
         var lines = await GetNewLogLinesAsync(id);
@@ -263,5 +269,28 @@ public class AgentOrchestrator
         var newLines = linesAll.Skip(off).ToList();
         _logOffsets[id] = off + newLines.Count;
         return newLines;
+    }
+
+    private async Task<List<string>> GetAllLogLinesAsync(string id)
+    {
+        if (_useLocal)
+        {
+            if (!_localLogs.TryGetValue(id, out var buf))
+                return new List<string>();
+            return buf.ToList();
+        }
+
+        if (!_containers.TryGetValue(id, out var containerId))
+            return new List<string>();
+
+        var psi = new ProcessStartInfo("docker", $"logs {containerId}")
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true
+        };
+        var proc = Process.Start(psi) ?? throw new InvalidOperationException("failed to fetch logs");
+        var content = await proc.StandardOutput.ReadToEndAsync();
+        proc.WaitForExit();
+        return content.Split('\n', StringSplitOptions.RemoveEmptyEntries).ToList();
     }
 }
