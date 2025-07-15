@@ -11,6 +11,9 @@
     <input class="form-control" placeholder="Goal" @bind="goal" />
 </div>
 <div class="mb-3">
+    <input type="number" class="form-control" placeholder="Loops" @bind="loops" />
+</div>
+<div class="mb-3">
     <select class="form-select" @bind="selectedType">
         @foreach (var type in Enum.GetValues<AgentType>())
         {
@@ -33,6 +36,7 @@
 @code {
     private string goal = string.Empty;
     private AgentType selectedType = AgentType.Default;
+    private int loops = 3;
     private List<AgentInfo> agents = new();
 
     protected override async Task OnInitializedAsync()
@@ -49,12 +53,13 @@
 
     private async Task StartAgent()
     {
-        var request = new StartAgentRequest(goal, selectedType);
+        var request = new StartAgentRequest(goal, selectedType, loops);
         var response = await Http.PostAsJsonAsync("api/agent/start", request);
         if (response.IsSuccessStatusCode)
         {
             await LoadAgents();
             goal = string.Empty;
+            loops = 3;
         }
     }
 

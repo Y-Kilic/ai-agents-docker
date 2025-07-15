@@ -35,6 +35,12 @@ Set the environment variable `OPENAI_API_KEY` before starting the orchestrator
 if you want the agents to use the real OpenAI API. When this variable is not
 present the runtime falls back to a mock provider that simply echoes prompts.
 
+### Agent Loop Count
+
+The agent's reasoning loop iteration count can be customized via the `LOOP_COUNT`
+environment variable. When omitted the agent will iterate three times before
+stopping.
+
 ### Agent Connectivity
 
 Agents running in Docker containers need a reachable API endpoint in order to
@@ -185,7 +191,7 @@ Once running, start an agent with:
 ```bash
 curl -X POST "http://localhost:5000/api/agent/start" \
      -H "Content-Type: application/json" \
-     -d '{"goal":"echo hello"}'
+     -d '{"goal":"echo hello","loops":5}'
 ```
 
 ```bash

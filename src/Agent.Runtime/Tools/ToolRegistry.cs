@@ -24,4 +24,6 @@ public static class ToolRegistry
         _tools.TryGetValue(name, out var tool);
         return tool;
     }
+
+    public static IEnumerable<string> GetToolNames() => _tools.Keys;
 }

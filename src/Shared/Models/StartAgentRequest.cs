@@ -1,3 +1,3 @@
 namespace Shared.Models;
 
-public record StartAgentRequest(string Goal, AgentType Type = AgentType.Default);
+public record StartAgentRequest(string Goal, AgentType Type = AgentType.Default, int Loops = 3);
