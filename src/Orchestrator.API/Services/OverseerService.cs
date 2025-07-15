@@ -1,4 +1,5 @@
 using Shared.Models;
+using Shared.LLM;
 using System.Collections.Concurrent;
 
 namespace Orchestrator.API.Services;
@@ -6,6 +7,7 @@ namespace Orchestrator.API.Services;
 public class OverseerService
 {
     private readonly AgentOrchestrator _agents;
+    private readonly ILLMProvider _llm;
 
     private class OverseerState
     {
@@ -13,6 +15,9 @@ public class OverseerService
         public string Goal { get; }
         public int Loops { get; }
         public List<string> AgentIds { get; } = new();
+        public List<string> Logs { get; } = new();
+        public List<string> Results { get; } = new();
+        public string? Result { get; set; }
         public CancellationTokenSource Cancellation { get; } = new();
 
         public OverseerState(string id, string goal, int loops)
@@ -25,19 +30,19 @@ public class OverseerService
 
     private readonly ConcurrentDictionary<string, OverseerState> _overseers = new();
 
-    public OverseerService(AgentOrchestrator agents)
+    public OverseerService(AgentOrchestrator agents, ILLMProvider llmProvider)
     {
         _agents = agents;
+        _llm = llmProvider;
     }
 
     public Task<string> StartAsync(string goal, int loops = 5)
     {
         var id = Guid.NewGuid().ToString("N");
-        var subgoals = DecomposeGoal(goal);
         var state = new OverseerState(id, goal, loops);
         _overseers[id] = state;
 
-        _ = Task.Run(() => RunAsync(state, subgoals));
+        _ = Task.Run(() => RunAsync(state));
 
         return Task.FromResult(id);
     }
@@ -58,7 +63,7 @@ public class OverseerService
             logs[agentId] = messages;
         }
 
-        return new OverseerStatus(info, logs);
+        return new OverseerStatus(info, logs, state.Logs.ToList(), state.Result);
     }
 
     public async Task StopAsync(string id)
@@ -69,14 +74,27 @@ public class OverseerService
         state.Cancellation.Cancel();
 
         foreach (var agentId in state.AgentIds)
+        {
             await _agents.StopAgentAsync(agentId);
+            state.Logs.Add($"Stopped agent {agentId}");
+        }
     }
 
-    private async Task RunAsync(OverseerState state, List<string> subgoals)
+    private async Task RunAsync(OverseerState state)
     {
-        foreach (var goal in subgoals)
+        for (var i = 0; i < state.Loops && !state.Cancellation.IsCancellationRequested; i++)
         {
-            await HandleSubgoalAsync(state, goal);
+            state.Logs.Add($"Planning iteration {i + 1}");
+            var plan = await PlanAsync(state);
+            state.Logs.Add($"LLM: {plan}");
+
+            if (plan.TrimStart().StartsWith("DONE", StringComparison.OrdinalIgnoreCase))
+            {
+                state.Result = plan.Trim();
+                break;
+            }
+
+            await HandleSubgoalAsync(state, plan.Trim());
         }
     }
 
@@ -88,17 +106,35 @@ public class OverseerService
         {
             var agentId = await _agents.StartAgentAsync(currentGoal, AgentType.Default, state.Loops);
             state.AgentIds.Add(agentId);
+            state.Logs.Add($"Started agent {agentId} for subgoal '{currentGoal}'");
 
             var completed = await WaitForCompletionAsync(agentId, state.Loops, state.Cancellation.Token);
+
+            var logs = await _agents.GetAllMessagesAsync(agentId);
+            if (logs.Count > 0)
+                state.Results.Add(logs.Last());
+            state.Logs.Add($"Agent {agentId} completed subgoal '{currentGoal}'");
 
             await _agents.StopAgentAsync(agentId);
 
             if (completed)
+            {
+                state.Logs.Add($"Subgoal '{subgoal}' completed");
                 break;
+            }
 
             attempt++;
             currentGoal = $"{subgoal} (attempt {attempt})";
+            state.Logs.Add($"Retrying subgoal '{subgoal}' as '{currentGoal}'");
         }
+    }
+
+    private async Task<string> PlanAsync(OverseerState state)
+    {
+        var context = state.Results.Count == 0 ? "none" : string.Join("; ", state.Results);
+        var prompt = $"Goal: {state.Goal}. Previous results: {context}. " +
+                     "Suggest the next subgoal in a short phrase. If the goal is accomplished respond with 'DONE: <result>'.";
+        return await _llm.CompleteAsync(prompt);
     }
 
     private async Task<bool> WaitForCompletionAsync(string agentId, int loops, CancellationToken token)
@@ -123,14 +159,4 @@ public class OverseerService
         return false;
     }
 
-    private static List<string> DecomposeGoal(string goal)
-    {
-        var parts = goal.Split(new[] { '.', '\n', ';' }, StringSplitOptions.RemoveEmptyEntries)
-            .Select(p => p.Trim())
-            .Where(p => !string.IsNullOrEmpty(p))
-            .ToList();
-        if (parts.Count <= 1)
-            parts = new List<string> { goal };
-        return parts;
-    }
 }

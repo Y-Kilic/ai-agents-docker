@@ -8,6 +8,13 @@ public static class ServiceCollectionExtensions
     {
         services.AddSingleton<Data.IUnitOfWork, Data.InMemoryUnitOfWork>();
         services.AddSingleton<AgentOrchestrator>();
+
+        var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+        Shared.LLM.ILLMProvider llm = string.IsNullOrWhiteSpace(apiKey)
+            ? new Shared.LLM.MockOpenAIProvider()
+            : new Shared.LLM.OpenAIProvider(apiKey);
+        services.AddSingleton(llm);
+
         services.AddSingleton<OverseerService>();
         return services;
     }

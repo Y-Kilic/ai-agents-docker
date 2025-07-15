@@ -1,5 +1,6 @@
 using Orchestrator.API.Services;
 using Shared.Models;
+using Shared.LLM;
 using System.Linq;
 
 namespace WorldSeed.Tests;
@@ -12,7 +13,7 @@ public class OverseerServiceTests
         Environment.SetEnvironmentVariable("USE_LOCAL_AGENT", "1");
         var uow = new Orchestrator.API.Data.InMemoryUnitOfWork();
         var orchestrator = new AgentOrchestrator(uow);
-        var overseer = new OverseerService(orchestrator);
+        var overseer = new OverseerService(orchestrator, new MockOpenAIProvider());
 
         var id = await overseer.StartAsync("task one. task two.", 1);
         OverseerInfo info = overseer.List().First(o => o.Id == id);
@@ -33,7 +34,7 @@ public class OverseerServiceTests
         Environment.SetEnvironmentVariable("USE_LOCAL_AGENT", "1");
         var uow = new Orchestrator.API.Data.InMemoryUnitOfWork();
         var orchestrator = new AgentOrchestrator(uow);
-        var overseer = new OverseerService(orchestrator);
+        var overseer = new OverseerService(orchestrator, new MockOpenAIProvider());
 
         var id = await overseer.StartAsync("echo one. echo two.", 1);
 
@@ -60,7 +61,7 @@ public class OverseerServiceTests
         Environment.SetEnvironmentVariable("USE_LOCAL_AGENT", "1");
         var uow = new Orchestrator.API.Data.InMemoryUnitOfWork();
         var orchestrator = new AgentOrchestrator(uow);
-        var overseer = new OverseerService(orchestrator);
+        var overseer = new OverseerService(orchestrator, new MockOpenAIProvider());
 
         var id = await overseer.StartAsync("echo", 1);
 

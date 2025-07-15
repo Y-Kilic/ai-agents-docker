@@ -29,6 +29,13 @@
             }
         </select>
     </div>
+    <h3>Overseer</h3>
+    <pre class="border p-2" style="height:200px; overflow-y:auto">@string.Join("\n", overseerMessages)</pre>
+    @if (!string.IsNullOrEmpty(result))
+    {
+        <h4>Result</h4>
+        <pre class="border p-2">@result</pre>
+    }
 }
 
 @if (!string.IsNullOrEmpty(selectedAgentId))
@@ -42,6 +49,8 @@
     private string? selectedOverseerId;
     private string? selectedAgentId;
     private readonly List<string> messages = new();
+    private readonly List<string> overseerMessages = new();
+    private string? result;
     private CancellationTokenSource? _cts;
 
     protected override async Task OnInitializedAsync()
@@ -60,9 +69,16 @@
     {
         _cts?.Cancel();
         messages.Clear();
+        overseerMessages.Clear();
+        result = null;
         selectedOverseerId = e.Value?.ToString();
         selectedAgentId = null;
         selectedOverseer = overseers.FirstOrDefault(o => o.Id == selectedOverseerId);
+        if (selectedOverseerId != null)
+        {
+            _cts = new CancellationTokenSource();
+            _ = PollStatusAsync(_cts.Token);
+        }
         await InvokeAsync(StateHasChanged);
     }
 
@@ -71,37 +87,43 @@
         _cts?.Cancel();
         messages.Clear();
         selectedAgentId = e.Value?.ToString();
-        if (!string.IsNullOrEmpty(selectedOverseerId) && !string.IsNullOrEmpty(selectedAgentId))
+        if (!string.IsNullOrEmpty(selectedOverseerId))
         {
             _cts = new CancellationTokenSource();
-            _ = PollLogsAsync(_cts.Token);
+            _ = PollStatusAsync(_cts.Token);
         }
     }
 
-    private async Task PollLogsAsync(CancellationToken token)
+    private async Task PollStatusAsync(CancellationToken token)
     {
         var timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
         try
         {
             while (await timer.WaitForNextTickAsync(token))
             {
-                await RefreshLogs();
+                await RefreshStatus();
                 await InvokeAsync(StateHasChanged);
             }
         }
         catch (OperationCanceledException) { }
     }
 
-    private async Task RefreshLogs()
+    private async Task RefreshStatus()
     {
-        if (string.IsNullOrEmpty(selectedOverseerId) || string.IsNullOrEmpty(selectedAgentId))
+        if (string.IsNullOrEmpty(selectedOverseerId))
             return;
 
         var status = await Http.GetFromJsonAsync<OverseerStatus>($"api/overseer/{selectedOverseerId}/status");
-        if (status != null && status.Logs.TryGetValue(selectedAgentId, out var logs))
+        if (status != null)
         {
-            messages.Clear();
-            messages.AddRange(logs);
+            overseerMessages.Clear();
+            overseerMessages.AddRange(status.OverseerLogs);
+            result = status.Result;
+            if (!string.IsNullOrEmpty(selectedAgentId) && status.Logs.TryGetValue(selectedAgentId, out var logs))
+            {
+                messages.Clear();
+                messages.AddRange(logs);
+            }
         }
     }
 
