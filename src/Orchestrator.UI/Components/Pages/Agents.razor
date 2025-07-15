@@ -36,7 +36,7 @@
 @code {
     private string goal = string.Empty;
     private AgentType selectedType = AgentType.Default;
-    private int loops = 3;
+    private int loops = 5;
     private List<AgentInfo> agents = new();
 
     protected override async Task OnInitializedAsync()
@@ -59,7 +59,7 @@
         {
             await LoadAgents();
             goal = string.Empty;
-            loops = 3;
+            loops = 5;
         }
     }
 

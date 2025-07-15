@@ -39,11 +39,11 @@ present the runtime falls back to a mock provider that simply echoes prompts.
 
 The number of iterations an agent performs can be specified by setting the
 `LOOP_COUNT` environment variable or by passing a `loops` value when starting an
-agent through the API. The agent will run until either it receives the `DONE`
-signal from the LLM or the configured loop count is reached. Specify `0` or any
-negative value to run indefinitely until the LLM returns `DONE`. On each
-iteration the agent sends its full history to the LLM provider so actions are
-planned with complete context.
+agent through the API. If neither is supplied, the agent defaults to **5** loops.
+The agent will run until either it receives the `DONE` signal from the LLM or
+the configured loop count is reached. Specify `0` or any negative value to run
+indefinitely until the LLM returns `DONE`. On each iteration the agent sends its
+full history to the LLM provider so actions are planned with complete context.
 
 ### Expected LLM Response Format
 
@@ -58,6 +58,13 @@ When an unknown tool is encountered the agent reuses the `chat` tool to handle
 the response. Such fallbacks do not count toward the configured loop limit, but
 after three consecutive unknown responses the agent stops to avoid an infinite
 loop.
+
+### Keeping Containers Alive
+
+Agents normally exit after the loop completes. The runtime now waits
+indefinitely so logs continue streaming unless `KEEP_ALIVE=0` is provided. The
+orchestrator explicitly sets `KEEP_ALIVE=1` when launching agents so they remain
+running until stopped.
 
 ### Agent Connectivity
 

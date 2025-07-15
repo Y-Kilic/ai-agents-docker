@@ -36,9 +36,16 @@ async Task RunAsync(string[] args)
 
     SendLog($"Goal received: {goal}");
 
-    var loops = 3;
+    var loops = 5;
     if (int.TryParse(Environment.GetEnvironmentVariable("LOOP_COUNT"), out var parsed))
         loops = parsed; // 0 or negative = unlimited loops
 
     await AgentRunner.RunAsync(goal, llmProvider, loops, SendLog);
+
+    var keepAlive = Environment.GetEnvironmentVariable("KEEP_ALIVE");
+    if (string.IsNullOrEmpty(keepAlive) || keepAlive != "0")
+    {
+        SendLog("Agent completed loops and will remain running. Set KEEP_ALIVE=0 to exit when done.");
+        await Task.Delay(Timeout.Infinite);
+    }
 }
