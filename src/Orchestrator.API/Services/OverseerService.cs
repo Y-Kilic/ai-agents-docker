@@ -124,7 +124,12 @@ public class OverseerService
             }
 
             attempt++;
-            currentGoal = $"{subgoal} (attempt {attempt})";
+            var lastLog = logs.LastOrDefault() ?? "none";
+            var improvPrompt =
+                $"We attempted the subgoal '{currentGoal}' but did not complete it. " +
+                $"Last result: '{lastLog}'. Suggest a short alternative approach to accomplish this subgoal.";
+            var newApproach = await _llm.CompleteAsync(improvPrompt);
+            currentGoal = $"{newApproach.Trim()} (attempt {attempt})";
             state.Logs.Add($"Retrying subgoal '{subgoal}' as '{currentGoal}'");
         }
     }
