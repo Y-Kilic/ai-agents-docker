@@ -82,7 +82,7 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private void OnAgentChanged(ChangeEventArgs e)
+    private async Task OnAgentChanged(ChangeEventArgs e)
     {
         _cts?.Cancel();
         messages.Clear();
@@ -92,6 +92,7 @@
             _cts = new CancellationTokenSource();
             _ = PollStatusAsync(_cts.Token);
         }
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task PollStatusAsync(CancellationToken token)
