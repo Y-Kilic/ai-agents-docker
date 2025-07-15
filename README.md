@@ -207,6 +207,7 @@ dotnet build ./src
 docker build -f ./docker/agent.Dockerfile -t worldseed-agent:latest .
 
 Building the solution automatically removes the previous `worldseed-agent:latest` image and rebuilds it so everything stays up-to-date.
+
 The build also compiles the Agent.Runtime project in Release mode so the Docker
 context contains the latest binaries.
 
