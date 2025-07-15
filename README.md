@@ -6,7 +6,7 @@ This project is a **modular AI agent framework** built in **C#/.NET**, designed 
 
 Each agent operates independently with its own reasoning loop, memory, and tools. A central orchestrator manages their lifecycle and coordination.
 
-The frontend is implemented in **Blazor Server** to provide a live dashboard, task interface, and system visibility.
+The frontend is implemented in **Blazor** to provide a live dashboard, task interface, and system visibility.
 
 ---
 
@@ -68,13 +68,7 @@ running until stopped.
 
 ### Agent Connectivity
 
-Agents running in Docker containers need a reachable API endpoint in order to
-report logs and memory entries. By default the orchestrator listens on
-`http://0.0.0.0:5000` and exposes this address through the
-`ORCHESTRATOR_URL` environment variable so containers can talk back to the
-host API. If you run the orchestrator on a different machine or network,
-update `ORCHESTRATOR_URL` to a host address accessible from the containers
-(for example `http://host.docker.internal:5000`).
+................
 
 ## ⚙️ Architecture
 
@@ -110,7 +104,7 @@ Accept tasks from UI
 
 Launch/terminate agent containers via Docker.DotNet
 
-Expose agent status and logs over REST/SignalR
+Expose agent status and logs over REST
 
 Assign goals, environment variables, or task definitions
 
@@ -138,7 +132,7 @@ C# console app compiled into a Docker image
 
 Executes the agent reasoning loop
 
-Communicates with orchestrator via gRPC/REST
+Communicates with orchestrator via REST
 
 Supports goal decomposition, vector memory, and tool invocation
 
@@ -179,10 +173,7 @@ Optional network isolation
 
 Communication via:
 
-gRPC or REST back to orchestrator
-
-Message queue (optional extension)
-
+REST back to orchestrator
 
 
 ---
@@ -234,7 +225,7 @@ curl -X POST http://localhost:5000/api/agent/<id>/stop
 
 🌐 Access Dashboard
 
-Visit: http://localhost:5000 (Blazor Server UI)
+Visit: http://localhost:5000 (Blazor UI)
 
 
 ---
@@ -261,7 +252,7 @@ docker run -d --rm \
 4. Agent begins loop: Thought → Tool → Action → Memory
 
 
-5. Agent reports status/results via gRPC/REST
+5. Agent saves logs thar can be obtained by the REST API
 
 
 6. Orchestrator tears down or persists agent state
@@ -275,8 +266,8 @@ docker run -d --rm \
 
 Component	Protocol	Description
 
-UI ↔ Orchestrator	SignalR/REST	Live UI sync, task submission
-Orchestrator ↔ Agent	REST/gRPC	Commands, status, goal injection
+UI ↔ Orchestrator	REST	Live UI sync, task submission
+Orchestrator ↔ Agent	REST	Commands, status, goal injection
 Agent ↔ Tools	Local call	CLI, file system, internal logic
 
 
@@ -356,7 +347,7 @@ Orchestrator: Docker.DotNet + ASP.NET Core
 
 Frontend: Blazor Server
 
-Communication: REST + SignalR (agents optional gRPC)
+Communication: REST
 
 
 
@@ -366,16 +357,7 @@ Communication: REST + SignalR (agents optional gRPC)
 
 Add custom agent behavior in /Agent.Runtime
 
-Extend the orchestrator controller to support agent types
-
-Add logs and telemetry collection per agent
-
-Build visual memory graph in Blazor UI
-
-Add unit tests for core libraries
-
-
-
+Build visual status activity graph in Blazor UI
 
 ---
 
@@ -388,6 +370,3 @@ AI_CONTROL_PROTOCOL = [
   { ROLE: "AGENT", COMMAND: "THINK_ACT_LOOP", PARAMS: goal_context },
   { ROLE: "TOOL", COMMAND: "EXECUTE", PARAMS: task },
 ]
-
-Let me know if you want this turned into a real repo skeleton with code next.
-
