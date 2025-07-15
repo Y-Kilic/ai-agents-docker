@@ -8,6 +8,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddSingleton<Data.IUnitOfWork, Data.InMemoryUnitOfWork>();
         services.AddSingleton<AgentOrchestrator>();
+        services.AddSingleton<OverseerService>();
         return services;
     }
 }
