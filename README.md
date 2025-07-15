@@ -61,9 +61,10 @@ loop.
 
 ### Keeping Containers Alive
 
-Agents normally exit after the loop completes. The orchestrator now sets a
-`KEEP_ALIVE=1` environment variable so agents stay running and continue to stream
-logs until they are explicitly stopped.
+Agents normally exit after the loop completes. The runtime now waits
+indefinitely so logs continue streaming unless `KEEP_ALIVE=0` is provided. The
+orchestrator explicitly sets `KEEP_ALIVE=1` when launching agents so they remain
+running until stopped.
 
 ### Agent Connectivity
 

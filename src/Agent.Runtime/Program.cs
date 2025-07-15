@@ -43,9 +43,9 @@ async Task RunAsync(string[] args)
     await AgentRunner.RunAsync(goal, llmProvider, loops, SendLog);
 
     var keepAlive = Environment.GetEnvironmentVariable("KEEP_ALIVE");
-    if (!string.IsNullOrEmpty(keepAlive) && keepAlive != "0")
+    if (string.IsNullOrEmpty(keepAlive) || keepAlive != "0")
     {
-        SendLog("Agent completed loops but KEEP_ALIVE is set. Waiting indefinitely.");
+        SendLog("Agent completed loops and will remain running. Set KEEP_ALIVE=0 to exit when done.");
         await Task.Delay(Timeout.Infinite);
     }
 }
