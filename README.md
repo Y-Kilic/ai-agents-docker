@@ -45,6 +45,20 @@ negative value to run indefinitely until the LLM returns `DONE`. On each
 iteration the agent sends its full history to the LLM provider so actions are
 planned with complete context.
 
+### Expected LLM Response Format
+
+The planner parses only the first line of the LLM response and expects the
+format `<tool> <input>` or the single word `DONE`. If the returned tool name does
+not match one of the registered tools the agent falls back to the `chat` tool.
+Ensure your language model is prompted to follow this format precisely. When
+using other models or custom prompts, verify that the first word corresponds to
+a valid tool name such as `chat`, `echo`, or `list`.
+
+When an unknown tool is encountered the agent reuses the `chat` tool to handle
+the response. Such fallbacks do not count toward the configured loop limit, but
+after three consecutive unknown responses the agent stops to avoid an infinite
+loop.
+
 ### Agent Connectivity
 
 Agents running in Docker containers need a reachable API endpoint in order to

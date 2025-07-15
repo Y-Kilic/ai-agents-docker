@@ -1,5 +1,6 @@
 using Agent.Runtime.Tools;
 using Shared.LLM;
+using System.Linq;
 
 namespace Agent.Runtime;
 
@@ -12,6 +13,7 @@ public static class AgentRunner
         ToolRegistry.Initialize(llmProvider, memory);
 
         var i = 0;
+        var unknownCount = 0;
         while (loops <= 0 || i < loops)
         {
             var loopMessage = loops <= 0
@@ -43,6 +45,7 @@ public static class AgentRunner
 
             var tool = ToolRegistry.Get(toolName);
             string result;
+            var executed = false;
             if (tool is null)
             {
                 log($"Tool '{toolName}' not found. Falling back to chat.");
@@ -63,11 +66,25 @@ public static class AgentRunner
                 result = await tool.ExecuteAsync(toolInput);
                 memory.Add($"{toolName} {toolInput} => {result}");
                 log($"MEMORY: {toolName} {toolInput} => {result}");
+                executed = true;
             }
 
             log(result);
             goal = result;
-            i++;
+            if (executed)
+            {
+                i++;
+                unknownCount = 0;
+            }
+            else
+            {
+                unknownCount++;
+                if (unknownCount >= 3)
+                {
+                    log("Too many unrecognized actions. Stopping loop.");
+                    break;
+                }
+            }
         }
 
         log("--- Final Memory ---");
@@ -77,7 +94,7 @@ public static class AgentRunner
         return memory;
     }
 
-    private static async Task<string> PlanNextAction(string currentGoal, List<string> memory, ILLMProvider llmProvider, Action<string> log)
+    private static async Task<string> PlanNextAction(string currentGoal, List<string> memory, ILLMProvider llmProvider, Action<string> log, int attempts = 0)
     {
         var tools = string.Join(", ", ToolRegistry.GetToolNames());
         var mem = memory.Count == 0 ? "none" : string.Join("; ", memory);
@@ -88,6 +105,10 @@ public static class AgentRunner
             " Respond ONLY with '<tool> <input>' using one of the tool names above." +
             " If unsure which tool fits, use 'chat' with a helpful question." +
             " Reply with 'DONE' when the goal is complete.";
+
+        if (attempts > 0)
+            prompt += " Your last response did not follow this format.";
+
         log($"PlanNextAction prompt: {prompt}");
         var result = await llmProvider.CompleteAsync(prompt);
         log($"PlanNextAction result: {result}");
@@ -99,6 +120,13 @@ public static class AgentRunner
         {
             log("LLM signaled DONE");
             return "done";
+        }
+
+        var potentialToolName = line.Split(new[] { ' ', ':' }, 2, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        if (potentialToolName != null && !ToolRegistry.GetToolNames().Contains(potentialToolName, StringComparer.OrdinalIgnoreCase) && attempts < 2)
+        {
+            log($"Unrecognized tool '{potentialToolName}'. Retrying prompt.");
+            return await PlanNextAction(currentGoal, memory, llmProvider, log, attempts + 1);
         }
 
         return line;

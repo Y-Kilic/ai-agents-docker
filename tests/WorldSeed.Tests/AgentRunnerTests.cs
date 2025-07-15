@@ -39,8 +39,23 @@ public class AgentRunnerTests
         var logs = new List<string>();
         await AgentRunner.RunAsync("test", provider, 1, logs.Add);
 
-        Assert.Contains(logs, l => l.Contains("Looking up tool 'foo'"));
-        Assert.Contains(logs, l => l.Contains("Tool 'foo' not found"));
+        Assert.Contains(logs, l => l.Contains("Unrecognized tool 'foo'"));
+    }
+
+    [Fact]
+    public async Task RunAsync_UnrecognizedTool_DoesNotCountLoop()
+    {
+        var provider = new SequenceLLMProvider(new[]
+        {
+            "foo greet",
+            "chat hi",
+            "pong"
+        });
+
+        var memory = await AgentRunner.RunAsync("test", provider, 1, _ => { });
+
+        Assert.Single(memory);
+        Assert.Contains("chat hi => pong", memory[0]);
     }
 
     [Fact]
