@@ -14,8 +14,13 @@ public class OverseerServiceTests
         var orchestrator = new AgentOrchestrator(uow);
         var overseer = new OverseerService(orchestrator);
 
-        var id = await overseer.StartAsync("task one. task two.");
-        var info = overseer.List().First(o => o.Id == id);
+        var id = await overseer.StartAsync("task one. task two.", 1);
+        OverseerInfo info = overseer.List().First(o => o.Id == id);
+        for (var i = 0; i < 20 && info.AgentIds.Count < 2; i++)
+        {
+            await Task.Delay(500);
+            info = overseer.List().First(o => o.Id == id);
+        }
         Assert.True(info.AgentIds.Count >= 2);
 
         await overseer.StopAsync(id);
@@ -47,5 +52,32 @@ public class OverseerServiceTests
         }
 
         await overseer.StopAsync(id);
+    }
+
+    [Fact]
+    public async Task Overseer_Retries_Subgoal_WhenNotDone()
+    {
+        Environment.SetEnvironmentVariable("USE_LOCAL_AGENT", "1");
+        var uow = new Orchestrator.API.Data.InMemoryUnitOfWork();
+        var orchestrator = new AgentOrchestrator(uow);
+        var overseer = new OverseerService(orchestrator);
+
+        var id = await overseer.StartAsync("echo", 1);
+
+        var retried = false;
+        for (var i = 0; i < 30; i++)
+        {
+            await Task.Delay(1000);
+            var info = overseer.List().First(o => o.Id == id);
+            if (info.AgentIds.Count > 1)
+            {
+                retried = true;
+                break;
+            }
+        }
+
+        await overseer.StopAsync(id);
+
+        Assert.True(retried, "Overseer did not retry incomplete subgoal");
     }
 }
