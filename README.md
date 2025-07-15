@@ -59,6 +59,12 @@ the response. Such fallbacks do not count toward the configured loop limit, but
 after three consecutive unknown responses the agent stops to avoid an infinite
 loop.
 
+### Keeping Containers Alive
+
+Agents normally exit after the loop completes. The orchestrator now sets a
+`KEEP_ALIVE=1` environment variable so agents stay running and continue to stream
+logs until they are explicitly stopped.
+
 ### Agent Connectivity
 
 Agents running in Docker containers need a reachable API endpoint in order to

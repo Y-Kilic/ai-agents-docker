@@ -86,6 +86,7 @@ public class AgentOrchestrator
             psi.Environment["AGENT_ID"] = id;
             psi.Environment["ORCHESTRATOR_URL"] = _orchestratorUrl;
             psi.Environment["LOOP_COUNT"] = loops.ToString();
+            psi.Environment["KEEP_ALIVE"] = "1";
 
             var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
             var logList = new List<string>();
@@ -122,7 +123,8 @@ public class AgentOrchestrator
             $"GOAL={goal}",
             $"AGENT_ID={id}",
             $"ORCHESTRATOR_URL={_orchestratorUrl}",
-            $"LOOP_COUNT={loops}"
+            $"LOOP_COUNT={loops}",
+            "KEEP_ALIVE=1"
         };
 
         if (!string.IsNullOrWhiteSpace(apiKey))
