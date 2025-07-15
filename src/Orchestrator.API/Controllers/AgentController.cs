@@ -35,7 +35,7 @@ public class AgentController : ControllerBase
     [HttpPost("start")]
     public async Task<IActionResult> Start([FromBody] StartAgentRequest request)
     {
-        var id = await _orchestrator.StartAgentAsync(request.Goal, request.Type);
+        var id = await _orchestrator.StartAgentAsync(request.Goal, request.Type, request.Loops);
         return Ok(new { id });
     }
 

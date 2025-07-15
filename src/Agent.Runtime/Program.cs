@@ -46,12 +46,23 @@ async Task RunAsync(string[] args)
     SendLog($"Goal received: {goal}");
 
     var memory = new List<string>();
-    for (var i = 0; i < 3; i++)
+    var loops = 3;
+    if (int.TryParse(Environment.GetEnvironmentVariable("LOOP_COUNT"), out var parsed))
+        loops = parsed;
+
+    for (var i = 0; i < loops; i++)
     {
-        var parts = goal.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+        var action = await PlanNextAction(goal, memory);
+        if (string.Equals(action, "done", StringComparison.OrdinalIgnoreCase))
+        {
+            SendLog("Planner indicated completion.");
+            break;
+        }
+
+        var parts = action.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length == 0)
         {
-            SendLog("No goal specified.");
+            SendLog("Planner returned no action.");
             break;
         }
 
@@ -76,5 +87,17 @@ async Task RunAsync(string[] args)
     SendLog("Memory:");
     foreach (var entry in memory)
         SendLog($"MEMORY: {entry}");
+}
+
+async Task<string> PlanNextAction(string currentGoal, List<string> memory)
+{
+    var tools = string.Join(", ", ToolRegistry.GetToolNames());
+    var mem = memory.Count == 0 ? "none" : string.Join("; ", memory);
+    var prompt = $"You are an autonomous agent. Current goal: '{currentGoal}'." +
+        $" Past actions: {mem}. Available tools: {tools}." +
+        " Choose the next tool and input in the format '<tool> <input>'." +
+        " Reply with 'DONE' if the goal is complete.";
+    var result = await llmProvider.CompleteAsync(prompt);
+    return result.Trim();
 }
 

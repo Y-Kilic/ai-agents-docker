@@ -57,7 +57,7 @@ public class AgentOrchestrator
         _apiKey = config.ApiKey;
     }
 
-    public async Task<string> StartAgentAsync(string goal, AgentType type = AgentType.Default)
+    public async Task<string> StartAgentAsync(string goal, AgentType type = AgentType.Default, int loops = 3)
     {
         var apiKey = _useOpenAI ? _apiKey : null;
 
@@ -85,6 +85,7 @@ public class AgentOrchestrator
 
             psi.Environment["AGENT_ID"] = id;
             psi.Environment["ORCHESTRATOR_URL"] = _orchestratorUrl;
+            psi.Environment["LOOP_COUNT"] = loops.ToString();
 
             var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
             var logList = new List<string>();
@@ -120,7 +121,8 @@ public class AgentOrchestrator
         {
             $"GOAL={goal}",
             $"AGENT_ID={id}",
-            $"ORCHESTRATOR_URL={_orchestratorUrl}"
+            $"ORCHESTRATOR_URL={_orchestratorUrl}",
+            $"LOOP_COUNT={loops}"
         };
 
         if (!string.IsNullOrWhiteSpace(apiKey))
