@@ -13,7 +13,8 @@ public static class AgentRunner
 
         for (var i = 0; i < loops; i++)
         {
-            log($"--- Loop {i + 1} of {loops} ---");
+            var loopMessage = $"--- Starting loop {i + 1} of {loops} ---";
+            log(loopMessage);
 
             var action = await PlanNextAction(goal, memory, llmProvider, log);
             log($"Planner returned action: '{action}'");
