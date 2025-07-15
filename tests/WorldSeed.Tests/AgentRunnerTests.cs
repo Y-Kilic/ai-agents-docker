@@ -43,6 +43,22 @@ public class AgentRunnerTests
     }
 
     [Fact]
+    public async Task RunAsync_UnrecognizedTool_DoesNotCountLoop()
+    {
+        var provider = new SequenceLLMProvider(new[]
+        {
+            "foo greet",
+            "chat hi",
+            "pong"
+        });
+
+        var memory = await AgentRunner.RunAsync("test", provider, 1, _ => { });
+
+        Assert.Single(memory);
+        Assert.Contains("chat hi => pong", memory[0]);
+    }
+
+    [Fact]
     public async Task RunAsync_ZeroLoops_RunsUntilDone()
     {
         var provider = new SequenceLLMProvider(new[]

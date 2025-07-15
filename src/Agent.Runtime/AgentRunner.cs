@@ -13,6 +13,7 @@ public static class AgentRunner
         ToolRegistry.Initialize(llmProvider, memory);
 
         var i = 0;
+        var unknownCount = 0;
         while (loops <= 0 || i < loops)
         {
             var loopMessage = loops <= 0
@@ -44,6 +45,7 @@ public static class AgentRunner
 
             var tool = ToolRegistry.Get(toolName);
             string result;
+            var executed = false;
             if (tool is null)
             {
                 log($"Tool '{toolName}' not found. Falling back to chat.");
@@ -64,11 +66,25 @@ public static class AgentRunner
                 result = await tool.ExecuteAsync(toolInput);
                 memory.Add($"{toolName} {toolInput} => {result}");
                 log($"MEMORY: {toolName} {toolInput} => {result}");
+                executed = true;
             }
 
             log(result);
             goal = result;
-            i++;
+            if (executed)
+            {
+                i++;
+                unknownCount = 0;
+            }
+            else
+            {
+                unknownCount++;
+                if (unknownCount >= 3)
+                {
+                    log("Too many unrecognized actions. Stopping loop.");
+                    break;
+                }
+            }
         }
 
         log("--- Final Memory ---");
