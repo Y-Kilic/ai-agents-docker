@@ -1,0 +1,68 @@
+@page "/overseers"
+@rendermode InteractiveServer
+@inject HttpClient Http
+@using Shared.Models
+
+<PageTitle>Overseers</PageTitle>
+
+<h1>Overseers</h1>
+
+<div class="mb-3">
+    <input class="form-control" placeholder="Goal" @bind="goal" />
+</div>
+<div class="mb-3">
+    <input type="number" class="form-control" placeholder="Loops" @bind="loops" />
+</div>
+<button class="btn btn-primary" @onclick="StartOverseer">Start Overseer</button>
+
+<h2 class="mt-4">Active Overseers</h2>
+<ul>
+    @foreach (var o in overseers)
+    {
+        <li>@o.Id
+            <button class="btn btn-sm btn-danger ms-2" @onclick="() => Stop(o.Id)">Stop</button>
+            <ul>
+                @foreach (var aid in o.AgentIds)
+                {
+                    <li>@aid</li>
+                }
+            </ul>
+        </li>
+    }
+</ul>
+
+@code {
+    private string goal = string.Empty;
+    private int loops = 5;
+    private List<OverseerInfo> overseers = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        var result = await Http.GetFromJsonAsync<List<OverseerInfo>>("api/overseer/list");
+        if (result != null)
+            overseers = result;
+    }
+
+    private async Task StartOverseer()
+    {
+        var req = new StartOverseerRequest(goal, loops);
+        var resp = await Http.PostAsJsonAsync("api/overseer/start", req);
+        if (resp.IsSuccessStatusCode)
+        {
+            await Load();
+            goal = string.Empty;
+            loops = 5;
+        }
+    }
+
+    private async Task Stop(string id)
+    {
+        await Http.PostAsync($"api/overseer/{id}/stop", null);
+        await Load();
+    }
+}

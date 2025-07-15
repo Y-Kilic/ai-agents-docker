@@ -1,0 +1,134 @@
+@page "/overseer-logs"
+@rendermode InteractiveServer
+@using Shared.Models
+@inject HttpClient Http
+@implements IDisposable
+
+<PageTitle>Overseer Logs</PageTitle>
+
+<h1>Overseer Logs</h1>
+
+<div class="mb-3">
+    <select class="form-select" value="@selectedOverseerId" @onchange="OnOverseerChanged">
+        <option value="">-- Select Overseer --</option>
+        @foreach (var o in overseers)
+        {
+            <option value="@o.Id">@o.Id</option>
+        }
+    </select>
+</div>
+
+@if (selectedOverseer != null)
+{
+    <div class="mb-3">
+        <select class="form-select" value="@selectedAgentId" @onchange="OnAgentChanged">
+            <option value="">-- Select Agent --</option>
+            @foreach (var id in selectedOverseer.AgentIds)
+            {
+                <option value="@id">@id</option>
+            }
+        </select>
+    </div>
+    <h3>Overseer</h3>
+    <pre class="border p-2" style="height:200px; overflow-y:auto">@string.Join("\n", overseerMessages)</pre>
+    @if (!string.IsNullOrEmpty(result))
+    {
+        <h4>Result</h4>
+        <pre class="border p-2">@result</pre>
+    }
+}
+
+@if (!string.IsNullOrEmpty(selectedAgentId))
+{
+    <pre class="border p-2" style="height:300px; overflow-y:auto">@string.Join("\n", messages)</pre>
+}
+
+@code {
+    private List<OverseerInfo> overseers = new();
+    private OverseerInfo? selectedOverseer;
+    private string? selectedOverseerId;
+    private string? selectedAgentId;
+    private readonly List<string> messages = new();
+    private readonly List<string> overseerMessages = new();
+    private string? result;
+    private CancellationTokenSource? _cts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOverseers();
+    }
+
+    private async Task LoadOverseers()
+    {
+        var result = await Http.GetFromJsonAsync<List<OverseerInfo>>("api/overseer/list");
+        if (result != null)
+            overseers = result;
+    }
+
+    private async void OnOverseerChanged(ChangeEventArgs e)
+    {
+        _cts?.Cancel();
+        messages.Clear();
+        overseerMessages.Clear();
+        result = null;
+        selectedOverseerId = e.Value?.ToString();
+        selectedAgentId = null;
+        selectedOverseer = overseers.FirstOrDefault(o => o.Id == selectedOverseerId);
+        if (selectedOverseerId != null)
+        {
+            _cts = new CancellationTokenSource();
+            _ = PollStatusAsync(_cts.Token);
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnAgentChanged(ChangeEventArgs e)
+    {
+        _cts?.Cancel();
+        messages.Clear();
+        selectedAgentId = e.Value?.ToString();
+        if (!string.IsNullOrEmpty(selectedOverseerId))
+        {
+            _cts = new CancellationTokenSource();
+            _ = PollStatusAsync(_cts.Token);
+        }
+    }
+
+    private async Task PollStatusAsync(CancellationToken token)
+    {
+        var timer = new PeriodicTimer(TimeSpan.FromSeconds(2));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(token))
+            {
+                await RefreshStatus();
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private async Task RefreshStatus()
+    {
+        if (string.IsNullOrEmpty(selectedOverseerId))
+            return;
+
+        var status = await Http.GetFromJsonAsync<OverseerStatus>($"api/overseer/{selectedOverseerId}/status");
+        if (status != null)
+        {
+            overseerMessages.Clear();
+            overseerMessages.AddRange(status.OverseerLogs);
+            result = status.Result;
+            if (!string.IsNullOrEmpty(selectedAgentId) && status.Logs.TryGetValue(selectedAgentId, out var logs))
+            {
+                messages.Clear();
+                messages.AddRange(logs);
+            }
+        }
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+    }
+}
