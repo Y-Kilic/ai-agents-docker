@@ -70,11 +70,11 @@ running until stopped.
 
 Agents running in Docker containers need a reachable API endpoint in order to
 report logs and memory entries. By default the orchestrator listens on
-`http://0.0.0.0:5000` and exposes this address through the
+`https://localhost:5001` and exposes this address through the
 `ORCHESTRATOR_URL` environment variable so containers can talk back to the
 host API. If you run the orchestrator on a different machine or network,
 update `ORCHESTRATOR_URL` to a host address accessible from the containers
-(for example `http://host.docker.internal:5000`).
+(for example `https://host.docker.internal:5001`).
 
 ## ⚙️ Architecture
 
@@ -214,22 +214,22 @@ dotnet run
 Once running, start an agent with:
 
 ```bash
-curl -X POST "http://localhost:5000/api/agent/start" \
+curl -X POST "https://localhost:5001/api/agent/start" \
      -H "Content-Type: application/json" \
      -d '{"goal":"echo hello","loops":5}'
 ```
 
 ```bash
 # list running agents
-curl http://localhost:5000/api/agent/list
+curl https://localhost:5001/api/agent/list
 
 # stop an agent
-curl -X POST http://localhost:5000/api/agent/<id>/stop
+curl -X POST https://localhost:5001/api/agent/<id>/stop
 ```
 
 🌐 Access Dashboard
 
-Visit: http://localhost:5000 (Blazor Server UI)
+Visit: https://localhost:5001 (Blazor Server UI)
 
 
 ---

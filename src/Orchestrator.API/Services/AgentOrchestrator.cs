@@ -29,11 +29,11 @@ public class AgentOrchestrator
         _useLocal = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("USE_LOCAL_AGENT"));
         _apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
         _useOpenAI = !string.IsNullOrWhiteSpace(_apiKey);
-        // Agents always communicate with the API over http://localhost:5000.
+        // Agents communicate with the API over https://localhost:5001.
         // Containers inherit this value through the ORCHESTRATOR_URL environment
         // variable so logs and memory are posted back to the host API.
         _orchestratorUrl = Environment.GetEnvironmentVariable("ORCHESTRATOR_URL")
-            ?? "http://localhost:5000";
+            ?? "https://localhost:5001";
         if (!_useLocal)
         {
             try
