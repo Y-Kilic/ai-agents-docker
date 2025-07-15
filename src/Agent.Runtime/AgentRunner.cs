@@ -6,7 +6,7 @@ namespace Agent.Runtime;
 
 public static class AgentRunner
 {
-    public static async Task<List<string>> RunAsync(string goal, ILLMProvider llmProvider, int loops = 3, Action<string>? log = null)
+    public static async Task<List<string>> RunAsync(string goal, ILLMProvider llmProvider, int loops = 5, Action<string>? log = null)
     {
         log ??= Console.WriteLine;
         var memory = new List<string>();
@@ -48,6 +48,7 @@ public static class AgentRunner
             var executed = false;
             if (tool is null)
             {
+                log($"Unknown tool response: '{action}'");
                 log($"Tool '{toolName}' not found. Falling back to chat.");
                 var chat = ToolRegistry.Get("chat");
                 if (chat is null)
@@ -79,6 +80,7 @@ public static class AgentRunner
             else
             {
                 unknownCount++;
+                log($"Unrecognized action count: {unknownCount}");
                 if (unknownCount >= 3)
                 {
                     log("Too many unrecognized actions. Stopping loop.");

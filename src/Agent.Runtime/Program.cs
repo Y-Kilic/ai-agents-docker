@@ -36,7 +36,7 @@ async Task RunAsync(string[] args)
 
     SendLog($"Goal received: {goal}");
 
-    var loops = 3;
+    var loops = 5;
     if (int.TryParse(Environment.GetEnvironmentVariable("LOOP_COUNT"), out var parsed))
         loops = parsed; // 0 or negative = unlimited loops
 

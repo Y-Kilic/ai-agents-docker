@@ -57,7 +57,7 @@ public class AgentOrchestrator
         _apiKey = config.ApiKey;
     }
 
-    public async Task<string> StartAgentAsync(string goal, AgentType type = AgentType.Default, int loops = 3)
+    public async Task<string> StartAgentAsync(string goal, AgentType type = AgentType.Default, int loops = 5)
     {
         var apiKey = _useOpenAI ? _apiKey : null;
 
