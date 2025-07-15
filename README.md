@@ -204,7 +204,9 @@ dotnet build ./src
 
 🐳 Build Agent Image
 
-docker build -f ./docker/agent.Dockerfile -t myagent:latest .
+docker build -f ./docker/agent.Dockerfile -t worldseed-agent:latest .
+
+Building the solution automatically rebuilds this image to ensure it stays up-to-date.
 
 ▶️ Run Orchestrator Locally
 
@@ -249,7 +251,7 @@ docker run -d --rm \
   --name agent-{id} \
   --security-opt seccomp=./docker/profiles/seccomp-agent.json \
   --security-opt apparmor=worldseed-agent \
-  myagent:latest --goal="..."
+  worldseed-agent:latest --goal="..."
 ```
 
 

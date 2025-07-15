@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+    <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
+  </PropertyGroup>
+
+  <Target Name="BuildWorldseedAgentImage" AfterTargets="Build" Condition="'$(MSBuildProjectName)' == 'Orchestrator.API'">
+    <Exec Command="docker --version" IgnoreExitCode="true" LogStandardErrorAsError="false">
+      <Output TaskParameter="ExitCode" PropertyName="DockerAvailable" />
+    </Exec>
+    <Message Text="Building Docker image worldseed-agent:latest" Importance="high" Condition="'$(DockerAvailable)' == '0'" />
+    <Exec Condition="'$(DockerAvailable)' == '0'" Command="docker build -f $(RepoRoot)docker/agent.Dockerfile -t worldseed-agent:latest $(RepoRoot)" />
+  </Target>
+</Project>
