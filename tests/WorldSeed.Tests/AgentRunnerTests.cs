@@ -78,6 +78,17 @@ public class AgentRunnerTests
         Assert.Contains("chat hi => pong", provider.Prompts[2]);
     }
 
+    [Fact]
+    public async Task RunAsync_LogsWhenDone()
+    {
+        var provider = new SequenceLLMProvider(new[] { "done" });
+        var logs = new List<string>();
+
+        await AgentRunner.RunAsync("test", provider, 0, logs.Add);
+
+        Assert.Contains(logs, l => l.Contains("LLM signaled DONE"));
+    }
+
     private class SequenceLLMProvider : ILLMProvider
     {
         private readonly Queue<string> _responses;

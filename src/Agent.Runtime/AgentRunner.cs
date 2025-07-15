@@ -96,7 +96,10 @@ public static class AgentRunner
         log($"PlanNextAction parsed line: {line}");
 
         if (result.Contains("DONE", StringComparison.OrdinalIgnoreCase))
+        {
+            log("LLM signaled DONE");
             return "done";
+        }
 
         return line;
     }
