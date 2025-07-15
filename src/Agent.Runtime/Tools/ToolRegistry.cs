@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Concurrent;
 using Shared.LLM;
 
@@ -5,13 +6,14 @@ namespace Agent.Runtime.Tools;
 
 public static class ToolRegistry
 {
-    private static readonly ConcurrentDictionary<string, ITool> _tools = new();
+    private static readonly ConcurrentDictionary<string, ITool> _tools = new(StringComparer.OrdinalIgnoreCase);
 
     public static void Initialize(ILLMProvider llmProvider)
     {
         // Register built-in tools
         Register(new EchoTool());
         Register(new ChatTool(llmProvider));
+        Register(new ListTool(llmProvider));
     }
 
     public static void Register(ITool tool)

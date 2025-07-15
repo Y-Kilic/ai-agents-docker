@@ -52,14 +52,18 @@ async Task RunAsync(string[] args)
 
     for (var i = 0; i < loops; i++)
     {
+        SendLog($"--- Loop {i + 1} of {loops} ---");
+
         var action = await PlanNextAction(goal, memory);
+        SendLog($"Planner returned action: '{action}'");
+
         if (string.Equals(action, "done", StringComparison.OrdinalIgnoreCase))
         {
             SendLog("Planner indicated completion.");
             break;
         }
 
-        var parts = action.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+        var parts = action.Split(new[] { ' ', ':' }, 2, StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length == 0)
         {
             SendLog("Planner returned no action.");
@@ -70,21 +74,35 @@ async Task RunAsync(string[] args)
         var toolInput = parts.Length > 1 ? parts[1] : string.Empty;
 
         var tool = ToolRegistry.Get(toolName);
+        string result;
         if (tool is null)
         {
-            SendLog($"Tool '{toolName}' not found.");
-            break;
+            SendLog($"Tool '{toolName}' not found. Falling back to chat.");
+            var chat = ToolRegistry.Get("chat");
+            if (chat is null)
+            {
+                SendLog("Chat tool is not registered. Skipping this step.");
+                memory.Add($"unknown {toolName} -> no execution");
+                continue;
+            }
+
+            result = await chat.ExecuteAsync(action);
+            memory.Add($"unknown {toolName} -> chat {action} => {result}");
+            SendLog($"MEMORY: unknown {toolName} -> chat {action} => {result}");
+        }
+        else
+        {
+            result = await tool.ExecuteAsync(toolInput);
+            memory.Add($"{toolName} {toolInput} => {result}");
+            SendLog($"MEMORY: {toolName} {toolInput} => {result}");
         }
 
-        var result = await tool.ExecuteAsync(toolInput);
-        memory.Add($"{toolName}:{toolInput} => {result}");
-        SendLog($"MEMORY: {toolName}:{toolInput} => {result}");
         SendLog(result);
 
         goal = result;
     }
 
-    SendLog("Memory:");
+    SendLog("--- Final Memory ---");
     foreach (var entry in memory)
         SendLog($"MEMORY: {entry}");
 }
@@ -93,11 +111,20 @@ async Task<string> PlanNextAction(string currentGoal, List<string> memory)
 {
     var tools = string.Join(", ", ToolRegistry.GetToolNames());
     var mem = memory.Count == 0 ? "none" : string.Join("; ", memory);
-    var prompt = $"You are an autonomous agent. Current goal: '{currentGoal}'." +
-        $" Past actions: {mem}. Available tools: {tools}." +
-        " Choose the next tool and input in the format '<tool> <input>'." +
-        " Reply with 'DONE' if the goal is complete.";
+    var prompt =
+        $"You are an autonomous agent. Current goal: '{currentGoal}'." +
+        $" Past actions: {mem}." +
+        $" Available tools: {tools}." +
+        " Respond ONLY with '<tool> <input>' using one of the tool names above." +
+        " If unsure which tool fits, use 'chat' with a helpful question." +
+        " Reply with 'DONE' when the goal is complete.";
+    SendLog($"PlanNextAction prompt: {prompt}");
     var result = await llmProvider.CompleteAsync(prompt);
-    return result.Trim();
+    SendLog($"PlanNextAction result: {result}");
+
+    // Only use the first line of the response and trim punctuation to avoid
+    // selecting an invalid tool name.
+    var line = result.Split('\n')[0].Trim().Trim('"', '.', '!');
+    return line;
 }
 
