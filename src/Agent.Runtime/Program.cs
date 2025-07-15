@@ -98,13 +98,19 @@ async Task<string> PlanNextAction(string currentGoal, List<string> memory)
 {
     var tools = string.Join(", ", ToolRegistry.GetToolNames());
     var mem = memory.Count == 0 ? "none" : string.Join("; ", memory);
-    var prompt = $"You are an autonomous agent. Current goal: '{currentGoal}'." +
-        $" Past actions: {mem}. Available tools: {tools}." +
-        " Choose the next tool and input in the format '<tool> <input>'." +
-        " Reply with 'DONE' if the goal is complete.";
+    var prompt =
+        $"You are an autonomous agent. Current goal: '{currentGoal}'." +
+        $" Past actions: {mem}." +
+        $" Available tools: {tools}." +
+        " Choose the next tool and input in the exact format '<tool> <input>'." +
+        " Reply with 'DONE' if the goal is complete. Respond with only the tool name and input or 'DONE'.";
     SendLog($"PlanNextAction prompt: {prompt}");
     var result = await llmProvider.CompleteAsync(prompt);
     SendLog($"PlanNextAction result: {result}");
-    return result.Trim();
+
+    // Only use the first line of the response and trim punctuation to avoid
+    // selecting an invalid tool name.
+    var line = result.Split('\n')[0].Trim().Trim('"', '.', '!');
+    return line;
 }
 
