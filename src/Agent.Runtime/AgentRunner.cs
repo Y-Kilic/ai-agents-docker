@@ -74,7 +74,7 @@ public static class AgentRunner
             log(result);
             if (executed)
             {
-                nextTask = result;
+                nextTask = $"Previous result: {result}. Determine the next step to achieve the goal.";
                 i++;
                 unknownCount = 0;
             }
@@ -97,15 +97,16 @@ public static class AgentRunner
         return memory;
     }
 
-    private static async Task<string> PlanNextAction(string goal, string currentTask, List<string> memory, ILLMProvider llmProvider, Action<string> log, int attempts = 0)
+    private static async Task<string> PlanNextAction(string goal, string context, List<string> memory, ILLMProvider llmProvider, Action<string> log, int attempts = 0)
     {
         var tools = string.Join(", ", ToolRegistry.GetToolNames());
         var mem = memory.Count == 0 ? "none" : string.Join("; ", memory);
         var prompt =
-            $"You are an autonomous agent. Goal: '{goal}'." +
-            $" Current task: '{currentTask}'." +
+            $"You are an autonomous agent working toward the goal: '{goal}'." +
+            $" The last result was: '{context}'." +
             $" Past actions: {mem}." +
             $" Available tools: {tools}." +
+            " Decide on the next best tool and input to achieve the goal." +
             " Respond ONLY with '<tool> <input>' using one of the tool names above." +
             " If unsure which tool fits, use 'chat' with a helpful question." +
             " Reply with 'DONE' when the goal is complete.";
@@ -130,7 +131,7 @@ public static class AgentRunner
         if (potentialToolName != null && !ToolRegistry.GetToolNames().Contains(potentialToolName, StringComparer.OrdinalIgnoreCase) && attempts < 2)
         {
             log($"Unrecognized tool '{potentialToolName}'. Retrying prompt.");
-            return await PlanNextAction(goal, currentTask, memory, llmProvider, log, attempts + 1);
+            return await PlanNextAction(goal, context, memory, llmProvider, log, attempts + 1);
         }
 
         return line;
