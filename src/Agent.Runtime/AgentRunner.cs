@@ -22,7 +22,7 @@ public static class AgentRunner
                 : $"--- Starting loop {i + 1} of {loops} ---";
             log(loopMessage);
 
-            var action = await PlanNextAction(nextTask, memory, llmProvider, log);
+            var action = await PlanNextAction(goal, nextTask, memory, llmProvider, log);
             log($"Planner returned action: '{action}'");
 
             if (string.Equals(action, "done", StringComparison.OrdinalIgnoreCase))
@@ -97,12 +97,13 @@ public static class AgentRunner
         return memory;
     }
 
-    private static async Task<string> PlanNextAction(string currentGoal, List<string> memory, ILLMProvider llmProvider, Action<string> log, int attempts = 0)
+    private static async Task<string> PlanNextAction(string goal, string currentTask, List<string> memory, ILLMProvider llmProvider, Action<string> log, int attempts = 0)
     {
         var tools = string.Join(", ", ToolRegistry.GetToolNames());
         var mem = memory.Count == 0 ? "none" : string.Join("; ", memory);
         var prompt =
-            $"You are an autonomous agent. Current goal: '{currentGoal}'." +
+            $"You are an autonomous agent. Goal: '{goal}'." +
+            $" Current task: '{currentTask}'." +
             $" Past actions: {mem}." +
             $" Available tools: {tools}." +
             " Respond ONLY with '<tool> <input>' using one of the tool names above." +
@@ -129,7 +130,7 @@ public static class AgentRunner
         if (potentialToolName != null && !ToolRegistry.GetToolNames().Contains(potentialToolName, StringComparer.OrdinalIgnoreCase) && attempts < 2)
         {
             log($"Unrecognized tool '{potentialToolName}'. Retrying prompt.");
-            return await PlanNextAction(currentGoal, memory, llmProvider, log, attempts + 1);
+            return await PlanNextAction(goal, currentTask, memory, llmProvider, log, attempts + 1);
         }
 
         return line;
