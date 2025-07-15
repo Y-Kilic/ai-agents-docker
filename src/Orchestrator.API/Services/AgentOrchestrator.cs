@@ -19,6 +19,7 @@ public class AgentOrchestrator
     private readonly ConcurrentDictionary<string, List<string>> _localLogs = new();
     private readonly ConcurrentDictionary<string, int> _logOffsets = new();
     private readonly ConcurrentDictionary<string, int> _memoryOffsets = new();
+    private readonly ConcurrentDictionary<string, List<string>> _memoryEntries = new();
     private readonly Data.IUnitOfWork _uow;
     private readonly string _orchestratorUrl;
     private bool _useOpenAI;
@@ -90,15 +91,34 @@ public class AgentOrchestrator
 
             var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
             var logList = new List<string>();
+            var memList = new List<string>();
             _localLogs[id] = logList;
+            _memoryEntries[id] = memList;
             _logOffsets[id] = 0;
             _memoryOffsets[id] = 0;
-            proc.OutputDataReceived += (s, e) => { if (e.Data != null) logList.Add(e.Data); };
-            proc.ErrorDataReceived += (s, e) => { if (e.Data != null) logList.Add(e.Data); };
+            proc.OutputDataReceived += (s, e) =>
+            {
+                if (e.Data != null)
+                {
+                    logList.Add(e.Data);
+                    if (e.Data.StartsWith("MEMORY:"))
+                        memList.Add(e.Data.Substring(7).Trim());
+                }
+            };
+            proc.ErrorDataReceived += (s, e) =>
+            {
+                if (e.Data != null)
+                {
+                    logList.Add(e.Data);
+                    if (e.Data.StartsWith("MEMORY:"))
+                        memList.Add(e.Data.Substring(7).Trim());
+                }
+            };
             proc.Exited += (s, e) =>
             {
                 _processes.TryRemove(id, out _);
                 _uow.Agents.Remove(id);
+                _memoryEntries.TryRemove(id, out _);
                 proc.Dispose();
             };
             proc.Start();
@@ -108,6 +128,7 @@ public class AgentOrchestrator
             {
                 _processes.TryRemove(id, out _);
                 _uow.Agents.Remove(id);
+                _memoryEntries.TryRemove(id, out _);
                 proc.Dispose();
             };
             _processes[id] = proc;
@@ -170,6 +191,7 @@ public class AgentOrchestrator
         _containers[id] = container.ID;
         _logOffsets[id] = 0;
         _memoryOffsets[id] = 0;
+        _memoryEntries[id] = new List<string>();
         var info = new AgentInfo(id, type);
         _uow.Agents.Add(info);
         await _uow.SaveChangesAsync();
@@ -196,6 +218,7 @@ public class AgentOrchestrator
             _localLogs.TryRemove(id, out _);
             _logOffsets.TryRemove(id, out _);
             _memoryOffsets.TryRemove(id, out _);
+            _memoryEntries.TryRemove(id, out _);
             await _uow.SaveChangesAsync();
             return;
         }
@@ -203,6 +226,7 @@ public class AgentOrchestrator
         _uow.Agents.Remove(id);
         _logOffsets.TryRemove(id, out _);
         _memoryOffsets.TryRemove(id, out _);
+        _memoryEntries.TryRemove(id, out _);
         await _uow.SaveChangesAsync();
         if (_containers.TryRemove(id, out var containerId))
         {
@@ -241,8 +265,26 @@ public class AgentOrchestrator
 
     public async Task<List<string>> GetMemoryAsync(string id)
     {
-        var lines = await GetAllLogLinesAsync(id);
-        var memories = lines.Where(l => l.StartsWith("MEMORY:")).Select(l => l.Substring(7).Trim()).ToList();
+        // Ensure stored memory entries are up to date
+        if (!_useLocal)
+        {
+            var lines = await GetAllLogLinesAsync(id);
+            if (_memoryEntries.TryGetValue(id, out var list))
+            {
+                var newEntries = lines.Where(l => l.StartsWith("MEMORY:")).Select(l => l.Substring(7).Trim()).Skip(list.Count).ToList();
+                if (newEntries.Count > 0)
+                    list.AddRange(newEntries);
+            }
+            else
+            {
+                var mems = lines.Where(l => l.StartsWith("MEMORY:")).Select(l => l.Substring(7).Trim()).ToList();
+                _memoryEntries[id] = mems;
+            }
+        }
+
+        if (!_memoryEntries.TryGetValue(id, out var memories))
+            memories = new List<string>();
+
         var offset = _memoryOffsets.GetOrAdd(id, 0);
         if (offset >= memories.Count)
             return new List<string>();
