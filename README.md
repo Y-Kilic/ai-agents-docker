@@ -243,8 +243,6 @@ Visit: http://localhost:5000 (Blazor UI)
 ```bash
 docker run -d --rm \
   --name agent-{id} \
-  --security-opt seccomp=./docker/profiles/seccomp-agent.json \
-  --security-opt apparmor=worldseed-agent \
   worldseed-agent:latest --goal="..."
 ```
 
