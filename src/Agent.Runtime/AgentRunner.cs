@@ -8,8 +8,8 @@ public static class AgentRunner
     public static async Task<List<string>> RunAsync(string goal, ILLMProvider llmProvider, int loops = 3, Action<string>? log = null)
     {
         log ??= Console.WriteLine;
-        ToolRegistry.Initialize(llmProvider);
         var memory = new List<string>();
+        ToolRegistry.Initialize(llmProvider, memory);
 
         var i = 0;
         while (loops <= 0 || i < loops)

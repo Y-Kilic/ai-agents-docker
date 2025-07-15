@@ -41,7 +41,9 @@ The number of iterations an agent performs can be specified by setting the
 `LOOP_COUNT` environment variable or by passing a `loops` value when starting an
 agent through the API. The agent will run until either it receives the `DONE`
 signal from the LLM or the configured loop count is reached. Specify `0` or any
-negative value to run indefinitely until the LLM returns `DONE`.
+negative value to run indefinitely until the LLM returns `DONE`. On each
+iteration the agent sends its full history to the LLM provider so actions are
+planned with complete context.
 
 ### Agent Connectivity
 

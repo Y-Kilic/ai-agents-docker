@@ -62,6 +62,22 @@ public class AgentRunnerTests
         Assert.Equal("chat step two => result two", memory[1]);
     }
 
+    [Fact]
+    public async Task RunAsync_SendsHistoryToProviderEachLoop()
+    {
+        var provider = new RecordingLLMProvider(new[]
+        {
+            "chat hi",
+            "pong",
+            "done"
+        });
+
+        await AgentRunner.RunAsync("test", provider, 0, _ => { });
+
+        Assert.Contains("History: none", provider.Prompts[1]);
+        Assert.Contains("chat hi => pong", provider.Prompts[2]);
+    }
+
     private class SequenceLLMProvider : ILLMProvider
     {
         private readonly Queue<string> _responses;
@@ -73,6 +89,23 @@ public class AgentRunnerTests
 
         public Task<string> CompleteAsync(string prompt, CancellationToken cancellationToken = default)
         {
+            return Task.FromResult(_responses.Count > 0 ? _responses.Dequeue() : string.Empty);
+        }
+    }
+
+    private class RecordingLLMProvider : ILLMProvider
+    {
+        private readonly Queue<string> _responses;
+        public List<string> Prompts { get; } = new();
+
+        public RecordingLLMProvider(IEnumerable<string> responses)
+        {
+            _responses = new Queue<string>(responses);
+        }
+
+        public Task<string> CompleteAsync(string prompt, CancellationToken cancellationToken = default)
+        {
+            Prompts.Add(prompt);
             return Task.FromResult(_responses.Count > 0 ? _responses.Dequeue() : string.Empty);
         }
     }
