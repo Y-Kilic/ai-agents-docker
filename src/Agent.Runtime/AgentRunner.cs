@@ -94,6 +94,10 @@ public static class AgentRunner
 
         var line = result.Split('\n')[0].Trim().Trim('"', '.', '!');
         log($"PlanNextAction parsed line: {line}");
+
+        if (result.Contains("DONE", StringComparison.OrdinalIgnoreCase))
+            return "done";
+
         return line;
     }
 }
