@@ -8,7 +8,7 @@ public class OpenAIProvider : ILLMProvider
     private readonly OpenAIAPI _api;
     private readonly string _model;
 
-    public OpenAIProvider(string apiKey, string model = "gpt-3.5-turbo")
+    public OpenAIProvider(string apiKey, string model = "gpt-4.1-nano")
     {
         _api = new OpenAIAPI(apiKey);
         _model = model;
