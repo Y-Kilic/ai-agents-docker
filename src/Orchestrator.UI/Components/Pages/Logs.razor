@@ -72,9 +72,12 @@
         if (string.IsNullOrEmpty(selectedAgentId))
             return;
 
-        var result = await Http.GetFromJsonAsync<List<string>>($"api/message/{selectedAgentId}");
-        if (result != null && result.Count > 0)
+        var result = await Http.GetFromJsonAsync<List<string>>($"api/message/{selectedAgentId}/all");
+        if (result != null)
+        {
+            messages.Clear();
             messages.AddRange(result);
+        }
     }
 
     public void Dispose()
