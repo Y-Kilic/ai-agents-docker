@@ -37,9 +37,10 @@ present the runtime falls back to a mock provider that simply echoes prompts.
 
 ### Agent Loop Count
 
-The agent's reasoning loop iteration count can be customized via the `LOOP_COUNT`
-environment variable. When omitted the agent will iterate three times before
-stopping.
+The number of iterations an agent performs can be specified by setting the
+`LOOP_COUNT` environment variable or by passing a `loops` value when starting an
+agent through the API. The agent will run until either it receives the `DONE`
+signal from the LLM or the configured loop count is reached.
 
 ### Agent Connectivity
 
