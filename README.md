@@ -52,7 +52,7 @@ format `<tool> <input>` or the single word `DONE`. If the returned tool name doe
 not match one of the registered tools the agent falls back to the `chat` tool.
 Ensure your language model is prompted to follow this format precisely. When
 using other models or custom prompts, verify that the first word corresponds to
-a valid tool name such as `chat`, `echo`, or `list`.
+a valid tool name such as `chat`, `echo`, `list`, or `compare`.
 
 When an unknown tool is encountered the agent reuses the `chat` tool to handle
 the response. Such fallbacks do not count toward the configured loop limit, but

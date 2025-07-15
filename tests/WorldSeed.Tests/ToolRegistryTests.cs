@@ -13,11 +13,13 @@ public class ToolRegistryTests
         Assert.NotNull(ToolRegistry.Get("echo"));
         Assert.NotNull(ToolRegistry.Get("chat"));
         Assert.NotNull(ToolRegistry.Get("list"));
+        Assert.NotNull(ToolRegistry.Get("compare"));
 
         // retrieval should be case-insensitive
         Assert.NotNull(ToolRegistry.Get("ECHO"));
         Assert.NotNull(ToolRegistry.Get("CHAT"));
         Assert.NotNull(ToolRegistry.Get("LIST"));
+        Assert.NotNull(ToolRegistry.Get("COMPARE"));
     }
 
     [Fact]

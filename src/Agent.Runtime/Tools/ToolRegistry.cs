@@ -15,6 +15,7 @@ public static class ToolRegistry
         Register(new EchoTool());
         Register(new ChatTool(llmProvider, memory));
         Register(new ListTool(llmProvider));
+        Register(new CompareTool(llmProvider));
     }
 
     public static void Register(ITool tool)
