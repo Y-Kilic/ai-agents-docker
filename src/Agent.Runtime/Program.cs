@@ -74,16 +74,29 @@ async Task RunAsync(string[] args)
         var toolInput = parts.Length > 1 ? parts[1] : string.Empty;
 
         var tool = ToolRegistry.Get(toolName);
+        string result;
         if (tool is null)
         {
-            SendLog($"Tool '{toolName}' not found. Skipping this step.");
-            memory.Add($"unknown {toolName} -> no execution");
-            continue;
+            SendLog($"Tool '{toolName}' not found. Falling back to chat.");
+            var chat = ToolRegistry.Get("chat");
+            if (chat is null)
+            {
+                SendLog("Chat tool is not registered. Skipping this step.");
+                memory.Add($"unknown {toolName} -> no execution");
+                continue;
+            }
+
+            result = await chat.ExecuteAsync(action);
+            memory.Add($"unknown {toolName} -> chat {action} => {result}");
+            SendLog($"MEMORY: unknown {toolName} -> chat {action} => {result}");
+        }
+        else
+        {
+            result = await tool.ExecuteAsync(toolInput);
+            memory.Add($"{toolName} {toolInput} => {result}");
+            SendLog($"MEMORY: {toolName} {toolInput} => {result}");
         }
 
-        var result = await tool.ExecuteAsync(toolInput);
-        memory.Add($"{toolName} {toolInput} => {result}");
-        SendLog($"MEMORY: {toolName} {toolInput} => {result}");
         SendLog(result);
 
         goal = result;
@@ -102,8 +115,9 @@ async Task<string> PlanNextAction(string currentGoal, List<string> memory)
         $"You are an autonomous agent. Current goal: '{currentGoal}'." +
         $" Past actions: {mem}." +
         $" Available tools: {tools}." +
-        " Choose the next tool and input in the exact format '<tool> <input>'." +
-        " Reply with 'DONE' if the goal is complete. Respond with only the tool name and input or 'DONE'.";
+        " Respond ONLY with '<tool> <input>' using one of the tool names above." +
+        " If unsure which tool fits, use 'chat' with a helpful question." +
+        " Reply with 'DONE' when the goal is complete.";
     SendLog($"PlanNextAction prompt: {prompt}");
     var result = await llmProvider.CompleteAsync(prompt);
     SendLog($"PlanNextAction result: {result}");
