@@ -52,7 +52,11 @@ async Task RunAsync(string[] args)
 
     for (var i = 0; i < loops; i++)
     {
+        SendLog($"--- Loop {i + 1} of {loops} ---");
+
         var action = await PlanNextAction(goal, memory);
+        SendLog($"Planner returned action: '{action}'");
+
         if (string.Equals(action, "done", StringComparison.OrdinalIgnoreCase))
         {
             SendLog("Planner indicated completion.");
@@ -72,8 +76,9 @@ async Task RunAsync(string[] args)
         var tool = ToolRegistry.Get(toolName);
         if (tool is null)
         {
-            SendLog($"Tool '{toolName}' not found.");
-            break;
+            SendLog($"Tool '{toolName}' not found. Skipping this step.");
+            memory.Add($"unknown:{toolName} -> no execution");
+            continue;
         }
 
         var result = await tool.ExecuteAsync(toolInput);
@@ -84,7 +89,7 @@ async Task RunAsync(string[] args)
         goal = result;
     }
 
-    SendLog("Memory:");
+    SendLog("--- Final Memory ---");
     foreach (var entry in memory)
         SendLog($"MEMORY: {entry}");
 }
@@ -97,7 +102,9 @@ async Task<string> PlanNextAction(string currentGoal, List<string> memory)
         $" Past actions: {mem}. Available tools: {tools}." +
         " Choose the next tool and input in the format '<tool> <input>'." +
         " Reply with 'DONE' if the goal is complete.";
+    SendLog($"PlanNextAction prompt: {prompt}");
     var result = await llmProvider.CompleteAsync(prompt);
+    SendLog($"PlanNextAction result: {result}");
     return result.Trim();
 }
 

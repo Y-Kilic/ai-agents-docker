@@ -12,6 +12,7 @@ public class ToolRegistryTests
 
         Assert.NotNull(ToolRegistry.Get("echo"));
         Assert.NotNull(ToolRegistry.Get("chat"));
+        Assert.NotNull(ToolRegistry.Get("list"));
     }
 
     [Fact]

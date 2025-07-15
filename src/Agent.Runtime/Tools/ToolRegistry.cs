@@ -12,6 +12,7 @@ public static class ToolRegistry
         // Register built-in tools
         Register(new EchoTool());
         Register(new ChatTool(llmProvider));
+        Register(new ListTool(llmProvider));
     }
 
     public static void Register(ITool tool)
