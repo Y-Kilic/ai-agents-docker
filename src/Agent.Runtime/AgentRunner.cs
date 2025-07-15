@@ -14,6 +14,7 @@ public static class AgentRunner
 
         var i = 0;
         var unknownCount = 0;
+        var nextTask = goal;
         while (loops <= 0 || i < loops)
         {
             var loopMessage = loops <= 0
@@ -21,7 +22,7 @@ public static class AgentRunner
                 : $"--- Starting loop {i + 1} of {loops} ---";
             log(loopMessage);
 
-            var action = await PlanNextAction(goal, memory, llmProvider, log);
+            var action = await PlanNextAction(nextTask, memory, llmProvider, log);
             log($"Planner returned action: '{action}'");
 
             if (string.Equals(action, "done", StringComparison.OrdinalIgnoreCase))
@@ -71,9 +72,9 @@ public static class AgentRunner
             }
 
             log(result);
-            goal = result;
             if (executed)
             {
+                nextTask = result;
                 i++;
                 unknownCount = 0;
             }
