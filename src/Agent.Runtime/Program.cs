@@ -1,15 +1,11 @@
-using Agent.Runtime.Tools;
 using Shared.Models;
 using Shared.LLM;
-using System.Net.Http;
-using System.Net.Http.Json;
+using Agent.Runtime;
 
 var config = AgentProfiles.TryGetProfile(AgentType.Default, out var profile)
     ? profile
     : new AgentConfig("runtime", AgentType.Default);
 
-// in the new pull model the runtime no longer posts data back to the host API
-// so these variables are retained only for backwards compatibility
 var agentId = Environment.GetEnvironmentVariable("AGENT_ID");
 var orchestratorUrl = Environment.GetEnvironmentVariable("ORCHESTRATOR_URL");
 
@@ -28,14 +24,9 @@ else
     SendLog("Using OpenAIProvider");
 }
 
-ToolRegistry.Initialize(llmProvider);
-
 await RunAsync(args);
 
-void SendLog(string message)
-{
-    Console.WriteLine(message);
-}
+void SendLog(string message) => Console.WriteLine(message);
 
 async Task RunAsync(string[] args)
 {
@@ -45,86 +36,9 @@ async Task RunAsync(string[] args)
 
     SendLog($"Goal received: {goal}");
 
-    var memory = new List<string>();
     var loops = 3;
     if (int.TryParse(Environment.GetEnvironmentVariable("LOOP_COUNT"), out var parsed))
         loops = parsed;
 
-    for (var i = 0; i < loops; i++)
-    {
-        SendLog($"--- Loop {i + 1} of {loops} ---");
-
-        var action = await PlanNextAction(goal, memory);
-        SendLog($"Planner returned action: '{action}'");
-
-        if (string.Equals(action, "done", StringComparison.OrdinalIgnoreCase))
-        {
-            SendLog("Planner indicated completion.");
-            break;
-        }
-
-        var parts = action.Split(new[] { ' ', ':' }, 2, StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length == 0)
-        {
-            SendLog("Planner returned no action.");
-            break;
-        }
-
-        var toolName = parts[0];
-        var toolInput = parts.Length > 1 ? parts[1] : string.Empty;
-
-        var tool = ToolRegistry.Get(toolName);
-        string result;
-        if (tool is null)
-        {
-            SendLog($"Tool '{toolName}' not found. Falling back to chat.");
-            var chat = ToolRegistry.Get("chat");
-            if (chat is null)
-            {
-                SendLog("Chat tool is not registered. Skipping this step.");
-                memory.Add($"unknown {toolName} -> no execution");
-                continue;
-            }
-
-            result = await chat.ExecuteAsync(action);
-            memory.Add($"unknown {toolName} -> chat {action} => {result}");
-            SendLog($"MEMORY: unknown {toolName} -> chat {action} => {result}");
-        }
-        else
-        {
-            result = await tool.ExecuteAsync(toolInput);
-            memory.Add($"{toolName} {toolInput} => {result}");
-            SendLog($"MEMORY: {toolName} {toolInput} => {result}");
-        }
-
-        SendLog(result);
-
-        goal = result;
-    }
-
-    SendLog("--- Final Memory ---");
-    foreach (var entry in memory)
-        SendLog($"MEMORY: {entry}");
+    await AgentRunner.RunAsync(goal, llmProvider, loops, SendLog);
 }
-
-async Task<string> PlanNextAction(string currentGoal, List<string> memory)
-{
-    var tools = string.Join(", ", ToolRegistry.GetToolNames());
-    var mem = memory.Count == 0 ? "none" : string.Join("; ", memory);
-    var prompt =
-        $"You are an autonomous agent. Current goal: '{currentGoal}'." +
-        $" Past actions: {mem}." +
-        $" Available tools: {tools}." +
-        " Respond ONLY with '<tool> <input>' using one of the tool names above." +
-        " If unsure which tool fits, use 'chat' with a helpful question." +
-        " Reply with 'DONE' when the goal is complete.";
-    SendLog($"PlanNextAction prompt: {prompt}");
-    var result = await llmProvider.CompleteAsync(prompt);
-    SendLog($"PlanNextAction result: {result}");
-
-    // Only use the first line of the response and trim punctuation to avoid
-    // selecting an invalid tool name.
-    var line = result.Split('\n')[0].Trim().Trim('"', '.', '!');
-    return line;
-}
-
