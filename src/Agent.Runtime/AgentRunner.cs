@@ -132,7 +132,10 @@ public static class AgentRunner
         var tools = string.Join(", ", ToolRegistry.GetToolNames());
         var mem = memory.Count == 0 ? "none" : string.Join("; ", memory);
         var prompt = $@"You are an autonomous agent working toward the goal: '{goal}'.
-Loops remaining (including this one): {loopsLeft}.
+Loops remaining (including this one): {loopsLeft}.";
+        if (loopsLeft != "unlimited")
+            prompt += " You must complete the goal by the final loop.";
+        prompt += $@"
 Last result: '{context}'.
 Past actions: {mem}.
 Available tools: {tools}
