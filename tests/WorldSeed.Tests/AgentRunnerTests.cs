@@ -43,6 +43,25 @@ public class AgentRunnerTests
         Assert.Contains(logs, l => l.Contains("Tool 'foo' not found"));
     }
 
+    [Fact]
+    public async Task RunAsync_ZeroLoops_RunsUntilDone()
+    {
+        var provider = new SequenceLLMProvider(new[]
+        {
+            "chat step one",
+            "result one",
+            "chat step two",
+            "result two",
+            "done"
+        });
+
+        var memory = await AgentRunner.RunAsync("test", provider, 0, _ => { });
+
+        Assert.Equal(2, memory.Count);
+        Assert.Equal("chat step one => result one", memory[0]);
+        Assert.Equal("chat step two => result two", memory[1]);
+    }
+
     private class SequenceLLMProvider : ILLMProvider
     {
         private readonly Queue<string> _responses;

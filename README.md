@@ -40,7 +40,8 @@ present the runtime falls back to a mock provider that simply echoes prompts.
 The number of iterations an agent performs can be specified by setting the
 `LOOP_COUNT` environment variable or by passing a `loops` value when starting an
 agent through the API. The agent will run until either it receives the `DONE`
-signal from the LLM or the configured loop count is reached.
+signal from the LLM or the configured loop count is reached. Specify `0` or any
+negative value to run indefinitely until the LLM returns `DONE`.
 
 ### Agent Connectivity
 

@@ -11,9 +11,12 @@ public static class AgentRunner
         ToolRegistry.Initialize(llmProvider);
         var memory = new List<string>();
 
-        for (var i = 0; i < loops; i++)
+        var i = 0;
+        while (loops <= 0 || i < loops)
         {
-            var loopMessage = $"--- Starting loop {i + 1} of {loops} ---";
+            var loopMessage = loops <= 0
+                ? $"--- Starting loop {i + 1} ---"
+                : $"--- Starting loop {i + 1} of {loops} ---";
             log(loopMessage);
 
             var action = await PlanNextAction(goal, memory, llmProvider, log);
@@ -64,6 +67,7 @@ public static class AgentRunner
 
             log(result);
             goal = result;
+            i++;
         }
 
         log("--- Final Memory ---");
