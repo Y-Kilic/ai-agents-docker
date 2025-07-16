@@ -25,6 +25,11 @@ public class ShellTool : ITool
             if ((input.StartsWith("\"") && input.EndsWith("\"")) || (input.StartsWith("'") && input.EndsWith("'")))
                 input = input.Substring(1, input.Length - 2);
 
+            // strip trailing comment if present
+            var hashIndex = input.IndexOf('#');
+            if (hashIndex >= 0)
+                input = input.Substring(0, hashIndex).Trim();
+
             var psi = new ProcessStartInfo
             {
                 FileName = shell,
@@ -44,16 +49,51 @@ public class ShellTool : ITool
             }
             using var process = Process.Start(psi);
             if (process == null)
-                return "Failed to start shell";
+                return "{\"exit_code\":-1,\"stdout\":\"\",\"stderr\":\"Failed to start shell\"}";
             var output = await process.StandardOutput.ReadToEndAsync();
             var error = await process.StandardError.ReadToEndAsync();
             process.WaitForExit();
-            var result = (output + error).Trim();
-            return string.IsNullOrWhiteSpace(result) ? "(no output)" : result;
+
+            var result = new
+            {
+                exit_code = process.ExitCode,
+                stdout = output.Length > 200 ? output[..200] : output,
+                stderr = error.Length > 200 ? error[..200] : error,
+                side_effect = GetSideEffectSummary(input)
+            };
+
+            return System.Text.Json.JsonSerializer.Serialize(result);
         }
         catch (Exception ex)
         {
-            return $"Shell error: {ex.Message}";
+            var err = new { exit_code = -1, stdout = "", stderr = ex.Message };
+            return System.Text.Json.JsonSerializer.Serialize(err);
         }
+    }
+
+    private static string? GetSideEffectSummary(string cmd)
+    {
+        try
+        {
+            // check simple patterns for file output
+            string? path = null;
+            if (cmd.Contains(" > "))
+            {
+                var parts = cmd.Split('>');
+                path = parts[^1].Trim().Split(' ')[0];
+            }
+            else if (cmd.Contains(" -o "))
+            {
+                var parts = cmd.Split(" -o ");
+                path = parts[^1].Trim().Split(' ')[0];
+            }
+            if (!string.IsNullOrWhiteSpace(path) && File.Exists(path))
+            {
+                var fi = new FileInfo(path);
+                return $"wrote {fi.Length} bytes to {path}";
+            }
+        }
+        catch { }
+        return null;
     }
 }

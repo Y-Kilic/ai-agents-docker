@@ -12,8 +12,9 @@ public static class ToolRegistry
     {
         _tools.Clear();
         _log = log ?? Console.WriteLine;
-        // Register built-in tool
+        // Register built-in tools
         Register(new ShellTool());
+        Register(new ResultTool());
     }
 
     public static void Register(ITool tool)

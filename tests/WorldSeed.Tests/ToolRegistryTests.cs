@@ -11,9 +11,11 @@ public class ToolRegistryTests
         ToolRegistry.Initialize(new MockOpenAIProvider(), new List<string>(), _ => { });
 
         Assert.NotNull(ToolRegistry.Get("shell"));
+        Assert.NotNull(ToolRegistry.Get("result"));
 
         // retrieval should be case-insensitive
         Assert.NotNull(ToolRegistry.Get("SHELL"));
+        Assert.NotNull(ToolRegistry.Get("RESULT"));
     }
 
     [Fact]

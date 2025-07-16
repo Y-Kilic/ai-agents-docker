@@ -1,6 +1,7 @@
 using Agent.Runtime.Tools;
 using Shared.LLM;
 using System.Linq;
+using System.Diagnostics;
 
 namespace Agent.Runtime;
 
@@ -95,24 +96,44 @@ public static class AgentRunner
             var tool = ToolRegistry.Get(toolName);
             string result = string.Empty;
             var executed = false;
-            if (tool is null)
+            if (toolName.Equals("shell", StringComparison.OrdinalIgnoreCase) &&
+                toolInput.Contains("install") && toolInput.Contains("curl"))
             {
-                log($"Unknown tool response: '{action}'");
-                memory.Add($"unknown {toolName} -> no execution");
-                await EnsureMemoryWithinLimit(memory, llmProvider, log);
+                if (await CommandExistsAsync("curl"))
+                {
+                    result = "curl already installed";
+                    memory.Add($"skip {toolInput} -> curl already installed");
+                    log($"MEMORY: skip {toolInput} -> curl already installed");
+                    executed = true;
+                }
             }
-            else
+
+            if (!executed)
             {
-                result = await tool.ExecuteAsync(toolInput);
-                var shortResult = result.Length > 200 ? result.Substring(0, 200) + "..." : result;
-                memory.Add($"{toolName} {toolInput} => {shortResult}");
-                log($"MEMORY: {toolName} {toolInput} => {shortResult}");
-                await EnsureMemoryWithinLimit(memory, llmProvider, log);
-                executed = true;
-                log(shortResult);
+                if (tool is null)
+                {
+                    log($"Unknown tool response: '{action}'");
+                    memory.Add($"unknown {toolName} -> no execution");
+                    await EnsureMemoryWithinLimit(memory, llmProvider, log);
+                }
+                else
+                {
+                    result = await tool.ExecuteAsync(toolInput);
+                    var shortResult = result.Length > 200 ? result.Substring(0, 200) + "..." : result;
+                    memory.Add($"{toolName} {toolInput} => {shortResult}");
+                    log($"MEMORY: {toolName} {toolInput} => {shortResult}");
+                    await EnsureMemoryWithinLimit(memory, llmProvider, log);
+                    executed = true;
+                    log(shortResult);
+                }
             }
             if (executed)
             {
+                if (toolName.Equals("result", StringComparison.OrdinalIgnoreCase))
+                {
+                    log("Result tool executed. Stopping loop.");
+                    break;
+                }
                 nextTask = $"Previous result: {result}. Determine the next step to achieve the goal.";
                 i++;
                 unknownCount = 0;
@@ -199,5 +220,33 @@ You should answer DONE immediately when:
         }
 
         return line;
+    }
+
+    private static bool _curlChecked;
+    private static bool _curlAvailable;
+    private static async Task<bool> CommandExistsAsync(string command)
+    {
+        if (!_curlChecked && command == "curl")
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "sh",
+                ArgumentList = { "-c", $"command -v {command}" },
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+            using var p = Process.Start(psi);
+            if (p == null)
+                return false;
+            var output = await p.StandardOutput.ReadToEndAsync();
+            p.WaitForExit();
+            _curlAvailable = !string.IsNullOrWhiteSpace(output);
+            _curlChecked = true;
+        }
+
+        if (command == "curl")
+            return _curlAvailable;
+
+        return false;
     }
 }

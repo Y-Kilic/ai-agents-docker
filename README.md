@@ -77,6 +77,23 @@ fetch remote data. If your host has a restrictive firewall, ensure the
 containers are allowed outbound access or run the orchestrator with a
 custom network mode, for example `--network host`.
 
+### Shell Tool
+
+Agents primarily interact with the container through the `shell` tool. Use it by
+returning lines like `shell "ls -la"` from the LLM. The tool executes the command
+and returns a JSON result containing `exit_code`, truncated `stdout`, `stderr`,
+and any detected file output. Example response:
+
+```
+shell "echo hi > out.txt"
+```
+
+The agent receives:
+
+```
+{"exit_code":0,"stdout":"","stderr":"","side_effect":"wrote 3 bytes to out.txt"}
+```
+
 ## ⚙️ Architecture
 
 ```text
