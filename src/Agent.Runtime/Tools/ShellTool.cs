@@ -21,6 +21,10 @@ public class ShellTool : ITool
                     shell = "/bin/sh";
             }
 
+            input = input.Trim();
+            if ((input.StartsWith("\"") && input.EndsWith("\"")) || (input.StartsWith("'") && input.EndsWith("'")))
+                input = input.Substring(1, input.Length - 2);
+
             var args = OperatingSystem.IsWindows()
                 ? $"/c {input}"
                 : $"-c \"{input.Replace("\"", "\\\"")}\"";

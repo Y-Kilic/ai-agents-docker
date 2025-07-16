@@ -15,6 +15,14 @@ public class AgentRunnerTests
     }
 
     [Fact]
+    public async Task RunAsync_ExecutesShellTool_WithQuotedInput()
+    {
+        var provider = new SequenceLLMProvider(new[] { "shell \"echo hi\"", "done" });
+        var memory = await AgentRunner.RunAsync("test", provider, 2, _ => { });
+        Assert.Contains("shell \"echo hi\" => hi", memory);
+    }
+
+    [Fact]
     public async Task RunAsync_MissingTool_LogsAvailableTools()
     {
         var provider = new SequenceLLMProvider(new[] { "foo bar", "done" });
