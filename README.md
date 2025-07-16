@@ -202,7 +202,9 @@ docker build -f ./docker/agent.Dockerfile -t worldseed-agent:latest .
 Building the solution automatically removes the previous `worldseed-agent:latest` image and rebuilds it so everything stays up-to-date.
 
 The build also compiles the Agent.Runtime project in Release mode so the Docker
-context contains the latest binaries.
+context contains the latest binaries. The agent image now installs **Chromium**
+and **ChromeDriver** so the Selenium-based `web` tool can fetch websites during
+execution.
 
 ▶️ Run Orchestrator Locally
 
