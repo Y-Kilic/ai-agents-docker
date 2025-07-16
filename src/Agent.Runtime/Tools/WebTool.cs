@@ -15,13 +15,20 @@ public class WebTool : ITool
         options.AddArgument("--no-sandbox");
         options.AddArgument("--disable-gpu");
         options.AddArgument("--disable-dev-shm-usage");
+        options.BinaryLocation = "/usr/bin/chromium-browser";
 
         try
         {
+            Console.WriteLine("[WebTool] Starting ChromeDriver");
+            ToolRegistry.Log("[WebTool] Starting ChromeDriver");
             using var driver = new ChromeDriver(options);
             driver.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(30);
+            Console.WriteLine("[WebTool] ChromeDriver started");
+            ToolRegistry.Log("[WebTool] ChromeDriver started");
 
             var url = input.Trim().Trim('"');
+            if (!url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                url = "https://" + url;
             Console.WriteLine($"[WebTool] Navigating to {url}");
             ToolRegistry.Log($"[WebTool] Navigating to {url}");
 
@@ -30,8 +37,6 @@ public class WebTool : ITool
                 driver.Navigate().GoToUrl(url);
                 await Task.Delay(1000);
                 var text = driver.PageSource;
-                if (text.Length > 1000)
-                    text = text.Substring(0, 1000);
                 return text;
             }
             catch (Exception ex)

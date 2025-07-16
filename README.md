@@ -54,7 +54,8 @@ Ensure your language model is prompted to follow this format precisely. When
 using other models or custom prompts, verify that the first word corresponds to
 a valid tool name such as `chat`, `echo`, `list`, `compare`, or `web`.
 When calling the `web` tool, place the URL in quotes, for example:
-`web "https://example.com"`.
+`web "https://example.com"`. Unquoted URLs like `web https://example.com` are
+also accepted, but quoting ensures the parser handles spaces correctly.
 
 When an unknown tool is encountered the agent reuses the `chat` tool to handle
 the response. Such fallbacks do not count toward the configured loop limit, but
