@@ -71,7 +71,28 @@ running until stopped.
 
 ### Agent Connectivity
 
-................
+Agents run inside Docker containers which by default use Docker's bridge
+network. This means they can reach the internet to download packages or
+fetch remote data. If your host has a restrictive firewall, ensure the
+containers are allowed outbound access or run the orchestrator with a
+custom network mode, for example `--network host`.
+
+### Terminal Access
+
+Agents now have direct terminal access. When prompted, the LLM should respond
+with the exact shell command to run (or `DONE`). The runtime executes the command
+and returns a JSON object with `exit_code`, truncated `stdout`, `stderr`, and any
+detected file output. Example:
+
+```
+echo hi > out.txt
+```
+
+Produces:
+
+```
+{"exit_code":0,"stdout":"","stderr":"","side_effect":"wrote 3 bytes to out.txt"}
+```
 
 ## ⚙️ Architecture
 

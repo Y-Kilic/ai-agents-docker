@@ -13,11 +13,8 @@ public static class ToolRegistry
         _tools.Clear();
         _log = log ?? Console.WriteLine;
         // Register built-in tools
-        Register(new EchoTool());
-        Register(new ChatTool(llmProvider, memory));
-        Register(new ListTool(llmProvider));
-        Register(new CompareTool(llmProvider));
-        Register(new WebTool());
+        Register(new ShellTool());
+        Register(new ResultTool());
     }
 
     public static void Register(ITool tool)

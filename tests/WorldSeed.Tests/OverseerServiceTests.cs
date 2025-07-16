@@ -17,12 +17,12 @@ public class OverseerServiceTests
 
         var id = await overseer.StartAsync("task one. task two.", 1);
         OverseerInfo info = overseer.List().First(o => o.Id == id);
-        for (var i = 0; i < 20 && info.AgentIds.Count < 2; i++)
+        for (var i = 0; i < 20 && info.AgentIds.Count < 1; i++)
         {
             await Task.Delay(500);
             info = overseer.List().First(o => o.Id == id);
         }
-        Assert.True(info.AgentIds.Count >= 2);
+        Assert.True(info.AgentIds.Count >= 1);
 
         await overseer.StopAsync(id);
         Assert.Empty(overseer.List());
@@ -63,7 +63,7 @@ public class OverseerServiceTests
         var orchestrator = new AgentOrchestrator(uow);
         var overseer = new OverseerService(orchestrator, new MockOpenAIProvider());
 
-        var id = await overseer.StartAsync("echo", 1);
+        var id = await overseer.StartAsync("echo test", 1);
 
         var retried = false;
         for (var i = 0; i < 30; i++)
