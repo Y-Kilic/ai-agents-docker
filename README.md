@@ -52,7 +52,10 @@ format `<tool> <input>` or the single word `DONE`. If the returned tool name doe
 not match one of the registered tools the agent falls back to the `chat` tool.
 Ensure your language model is prompted to follow this format precisely. When
 using other models or custom prompts, verify that the first word corresponds to
-a valid tool name such as `chat`, `echo`, `list`, or `compare`.
+a valid tool name such as `chat`, `echo`, `list`, `compare`, or `web`.
+When calling the `web` tool, place the URL in quotes, for example:
+`web "https://example.com"`. Unquoted URLs like `web https://example.com` are
+also accepted, but quoting ensures the parser handles spaces correctly.
 
 When an unknown tool is encountered the agent reuses the `chat` tool to handle
 the response. Such fallbacks do not count toward the configured loop limit, but
@@ -200,7 +203,9 @@ docker build -f ./docker/agent.Dockerfile -t worldseed-agent:latest .
 Building the solution automatically removes the previous `worldseed-agent:latest` image and rebuilds it so everything stays up-to-date.
 
 The build also compiles the Agent.Runtime project in Release mode so the Docker
-context contains the latest binaries.
+context contains the latest binaries. The agent image now installs **Chromium**
+and **ChromeDriver** so the Selenium-based `web` tool can fetch websites during
+execution.
 
 ▶️ Run Orchestrator Locally
 

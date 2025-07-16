@@ -10,7 +10,7 @@ public static class AgentRunner
     {
         log ??= Console.WriteLine;
         var memory = new List<string>();
-        ToolRegistry.Initialize(llmProvider, memory);
+        ToolRegistry.Initialize(llmProvider, memory, log);
 
         var i = 0;
         var unknownCount = 0;
@@ -139,12 +139,13 @@ Loops remaining (including this one): {loopsLeft}.";
 Last result: '{context}'.
 Past actions: {mem}.
 Available tools: {tools}
+When calling the web tool, put the URL in quotes. Example: web ""https://example.com"".
 
 **CRITICAL** – Finish in as few steps as possible.
-Respond ONLY with:
-    <toolName> <input>
-or
-    DONE";
+        Respond ONLY with:
+            <toolName> <input>
+        or
+            DONE";
 
         prompt += @"
 You should answer DONE immediately when:
@@ -160,8 +161,12 @@ If a question still matters to rank items, ask it with 'chat'.";
         var result = await llmProvider.CompleteAsync(prompt);
         log($"PlanNextAction result: {result}");
 
-        var line = result.Split('\n')[0].Trim().Trim('"', '.', '!');
+        var line = result.Split('\n')[0].Trim().TrimEnd('.', '!');
         log($"PlanNextAction parsed line: {line}");
+
+        var potentialToolName = line.Split(new[] { ' ', ':' }, 2, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        var potentialInput = line.Contains(' ') ? line.Substring(line.IndexOf(' ') + 1) : string.Empty;
+        log($"Parsed toolName: '{potentialToolName}' input: '{potentialInput}'");
 
         if (result.Contains("DONE", StringComparison.OrdinalIgnoreCase))
         {
@@ -169,7 +174,6 @@ If a question still matters to rank items, ask it with 'chat'.";
             return "done";
         }
 
-        var potentialToolName = line.Split(new[] { ' ', ':' }, 2, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
         if (potentialToolName != null && !ToolRegistry.GetToolNames().Contains(potentialToolName, StringComparer.OrdinalIgnoreCase) && attempts < 2)
         {
             log($"Unrecognized tool '{potentialToolName}'. Retrying prompt.");

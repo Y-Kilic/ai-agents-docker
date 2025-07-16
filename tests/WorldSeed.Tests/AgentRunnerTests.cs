@@ -1,4 +1,5 @@
 using Agent.Runtime;
+using Agent.Runtime.Tools;
 using Shared.LLM;
 
 namespace WorldSeed.Tests;
@@ -109,6 +110,15 @@ public class AgentRunnerTests
         Assert.Contains(logs, l => l.Contains("LLM signaled DONE"));
     }
 
+    [Fact]
+    public async Task RunAsync_WebCommandWithoutQuotes_ParsesCorrectly()
+    {
+        var provider = new RegisteringProvider("web https://example.com");
+        await AgentRunner.RunAsync("test", provider, 1, _ => { });
+
+        Assert.Equal("https://example.com", RegisteringProvider.CapturedInput);
+    }
+
     private class SequenceLLMProvider : ILLMProvider
     {
         private readonly Queue<string> _responses;
@@ -138,6 +148,41 @@ public class AgentRunnerTests
         {
             Prompts.Add(prompt);
             return Task.FromResult(_responses.Count > 0 ? _responses.Dequeue() : string.Empty);
+        }
+    }
+
+    private class RegisteringProvider : ILLMProvider
+    {
+        private readonly string _response;
+        private bool _firstCall = true;
+        public static string? CapturedInput { get; set; }
+
+        public RegisteringProvider(string response)
+        {
+            _response = response;
+        }
+
+        public Task<string> CompleteAsync(string prompt, CancellationToken cancellationToken = default)
+        {
+            if (_firstCall)
+            {
+                _firstCall = false;
+                ToolRegistry.Register(new FakeWebTool());
+                return Task.FromResult(_response);
+            }
+
+            return Task.FromResult(string.Empty);
+        }
+    }
+
+    private class FakeWebTool : ITool
+    {
+        public string Name => "web";
+
+        public Task<string> ExecuteAsync(string input)
+        {
+            RegisteringProvider.CapturedInput = input;
+            return Task.FromResult("ok");
         }
     }
 }
