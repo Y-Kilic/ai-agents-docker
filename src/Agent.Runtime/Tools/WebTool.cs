@@ -1,3 +1,4 @@
+using System;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 
@@ -16,11 +17,22 @@ public class WebTool : ITool
         options.AddArgument("--disable-dev-shm-usage");
 
         using var driver = new ChromeDriver(options);
-        driver.Navigate().GoToUrl(input);
-        await Task.Delay(1000);
-        var text = driver.PageSource;
-        if (text.Length > 1000)
-            text = text.Substring(0, 1000);
-        return text;
+        driver.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(30);
+
+        input = input.Trim().Trim('"');
+
+        try
+        {
+            driver.Navigate().GoToUrl(input);
+            await Task.Delay(1000);
+            var text = driver.PageSource;
+            if (text.Length > 1000)
+                text = text.Substring(0, 1000);
+            return text;
+        }
+        catch
+        {
+            return "Failed to load website";
+        }
     }
 }
