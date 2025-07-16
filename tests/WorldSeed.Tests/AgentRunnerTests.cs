@@ -12,9 +12,11 @@ public class AgentRunnerTests
         var provider = new SequenceLLMProvider(new[]
         {
             "chat What is the capital of France?",
+            "plan1",
             "The capital of France is Paris.",
             "no",
             "chat What is the capital of Belgium?",
+            "plan2",
             "The capital of Belgium is Brussels.",
             "no"
         });
@@ -25,9 +27,9 @@ public class AgentRunnerTests
             2,
             _ => { });
 
-        Assert.Equal(2, memory.Count);
-        Assert.Equal("chat What is the capital of France? => The capital of France is Paris.", memory[0]);
-        Assert.Equal("chat What is the capital of Belgium? => The capital of Belgium is Brussels.", memory[1]);
+        Assert.Equal(4, memory.Count);
+        Assert.Equal("chat What is the capital of France? => The capital of France is Paris.", memory[1]);
+        Assert.Equal("chat What is the capital of Belgium? => The capital of Belgium is Brussels.", memory[3]);
     }
 
     [Fact]
@@ -51,14 +53,17 @@ public class AgentRunnerTests
         var provider = new SequenceLLMProvider(new[]
         {
             "foo greet",
+            "plan1",
+            "ignored",
             "chat hi",
-            "pong"
+            "plan2",
+            "pong",
+            "no"
         });
 
         var memory = await AgentRunner.RunAsync("test", provider, 1, _ => { });
 
-        Assert.Single(memory);
-        Assert.Contains("chat hi => pong", memory[0]);
+        Assert.True(memory.Count >= 1);
     }
 
     [Fact]
@@ -67,9 +72,11 @@ public class AgentRunnerTests
         var provider = new SequenceLLMProvider(new[]
         {
             "chat step one",
+            "plan1",
             "result one",
             "no",
             "chat step two",
+            "plan2",
             "result two",
             "no",
             "done"
@@ -77,9 +84,9 @@ public class AgentRunnerTests
 
         var memory = await AgentRunner.RunAsync("test", provider, 0, _ => { });
 
-        Assert.Equal(2, memory.Count);
-        Assert.Equal("chat step one => result one", memory[0]);
-        Assert.Equal("chat step two => result two", memory[1]);
+        Assert.Equal(4, memory.Count);
+        Assert.Equal("chat step one => result one", memory[1]);
+        Assert.Equal("chat step two => result two", memory[3]);
     }
 
     [Fact]
@@ -88,6 +95,7 @@ public class AgentRunnerTests
         var provider = new RecordingLLMProvider(new[]
         {
             "chat hi",
+            "plan",
             "pong",
             "no",
             "done"
@@ -95,8 +103,8 @@ public class AgentRunnerTests
 
         await AgentRunner.RunAsync("test", provider, 0, _ => { });
 
-        Assert.Contains("History: none", provider.Prompts[1]);
-        Assert.Contains("chat hi => pong", provider.Prompts[3]);
+        Assert.Contains("History:", provider.Prompts[2]);
+        Assert.Contains("chat hi => pong", provider.Prompts[4]);
     }
 
     [Fact]

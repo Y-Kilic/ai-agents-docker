@@ -64,6 +64,13 @@ public static class AgentRunner
 
             log($"Looking up tool '{toolName}' among: {string.Join(", ", ToolRegistry.GetToolNames())}");
 
+            // Ask the LLM to explicitly state the intention before executing
+            var planPrompt =
+                $"In one short sentence, describe what you intend to accomplish by executing '{toolName} {toolInput}'.";
+            var planNote = await llmProvider.CompleteAsync(planPrompt);
+            memory.Add($"plan {toolName} {toolInput} -> {planNote}");
+            log($"MEMORY: plan {toolName} {toolInput} -> {planNote}");
+
             var tool = ToolRegistry.Get(toolName);
             string result;
             var executed = false;
