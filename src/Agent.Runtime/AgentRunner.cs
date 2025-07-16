@@ -35,6 +35,9 @@ public static class AgentRunner
 
         var i = 0;
         var nextTask = goal;
+        string? lastCommand = null;
+        string? lastResult = null;
+        int repeatCount = 0;
         while (loops <= 0 || i < loops)
         {
             var loopMessage = loops <= 0
@@ -53,6 +56,21 @@ public static class AgentRunner
             }
 
             var result = await shell.ExecuteAsync(command);
+            if (command == lastCommand && result == lastResult)
+            {
+                repeatCount++;
+                if (repeatCount >= 3)
+                {
+                    log("Stopping due to repeated command with no progress.");
+                    break;
+                }
+            }
+            else
+            {
+                repeatCount = 0;
+                lastCommand = command;
+                lastResult = result;
+            }
             var shortResult = result.Length > 200 ? result.Substring(0, 200) + "..." : result;
             memory.Add($"{command} => {shortResult}");
             log($"MEMORY: {command} => {shortResult}");

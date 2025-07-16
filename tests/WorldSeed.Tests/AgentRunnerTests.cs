@@ -35,6 +35,15 @@ public class AgentRunnerTests
         Assert.Contains(logs, l => l.Contains("LLM signaled DONE"));
     }
 
+    [Fact]
+    public async Task RunAsync_StopsAfterRepeatedCommands()
+    {
+        var provider = new SequenceLLMProvider(new[] { "echo hi", "echo hi", "echo hi", "echo hi" });
+        var logs = new List<string>();
+        await AgentRunner.RunAsync("test", provider, 10, logs.Add);
+        Assert.Contains(logs, l => l.Contains("Stopping due to repeated command"));
+    }
+
     private class SequenceLLMProvider : ILLMProvider
     {
         private readonly Queue<string> _responses;
