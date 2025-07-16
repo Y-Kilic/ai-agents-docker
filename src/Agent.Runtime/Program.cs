@@ -32,7 +32,7 @@ async Task RunAsync(string[] args)
 {
     string goal = args.Length > 0
         ? string.Join(" ", args)
-        : Environment.GetEnvironmentVariable("GOAL") ?? "echo hello";
+        : Environment.GetEnvironmentVariable("GOAL") ?? "shell echo hello";
 
     SendLog($"Goal received: {goal}");
 

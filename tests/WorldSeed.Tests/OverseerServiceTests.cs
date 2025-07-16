@@ -36,7 +36,7 @@ public class OverseerServiceTests
         var orchestrator = new AgentOrchestrator(uow);
         var overseer = new OverseerService(orchestrator, new MockOpenAIProvider());
 
-        var id = await overseer.StartAsync("echo one. echo two.", 1);
+        var id = await overseer.StartAsync("shell echo one. shell echo two.", 1);
 
         OverseerStatus? status = null;
         for (var i = 0; i < 10; i++)
@@ -63,7 +63,7 @@ public class OverseerServiceTests
         var orchestrator = new AgentOrchestrator(uow);
         var overseer = new OverseerService(orchestrator, new MockOpenAIProvider());
 
-        var id = await overseer.StartAsync("echo", 1);
+        var id = await overseer.StartAsync("shell echo test", 1);
 
         var retried = false;
         for (var i = 0; i < 30; i++)

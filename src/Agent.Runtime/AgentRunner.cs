@@ -64,22 +64,10 @@ public static class AgentRunner
             var toolInput = parts.Length > 1 ? parts[1] : string.Empty;
             log($"Parsed toolName: '{toolName}' input: '{toolInput}'");
 
-            bool madeProgress = !memory.LastOrDefault()?.StartsWith($"{toolName} {toolInput}", StringComparison.OrdinalIgnoreCase) ?? true;
-            if (!madeProgress)
+            bool repeated = memory.LastOrDefault()?.StartsWith($"{toolName} {toolInput}", StringComparison.OrdinalIgnoreCase) ?? false;
+            if (repeated)
             {
-                toolName = "chat";
-                toolInput = $"We just repeated the same command and made no progress. Summarise what we know and decide the next DISTINCT step toward '{goal}'.";
-            }
-
-            var lowValue =
-                toolName.Equals("list", StringComparison.OrdinalIgnoreCase) && memory.Any(m => m.StartsWith("list ")) ||
-                toolName.Equals("echo", StringComparison.OrdinalIgnoreCase) && !memory.Any(m => m.StartsWith("chat "));
-
-            if (lowValue)
-            {
-                log($"'{toolName}' now would yield no new insight. Switching to chat.");
-                toolName = "chat";
-                toolInput = $"Using '{toolName}' here is redundant. Propose a DIFFERENT step or say DONE if we can finish.";
+                log("Same command repeated with no progress.");
             }
 
             log($"Looking up tool '{toolName}' among: {string.Join(", ", ToolRegistry.GetToolNames())}");
@@ -92,52 +80,22 @@ public static class AgentRunner
             log($"MEMORY: plan {toolName} {toolInput} -> {planNote}");
 
             var tool = ToolRegistry.Get(toolName);
-            string result;
+            string result = string.Empty;
             var executed = false;
             if (tool is null)
             {
                 log($"Unknown tool response: '{action}'");
-                log($"Tool '{toolName}' not found. Falling back to chat.");
-                var chat = ToolRegistry.Get("chat");
-                if (chat is null)
-                {
-                    log("Chat tool is not registered. Skipping this step.");
-                    memory.Add($"unknown {toolName} -> no execution");
-                    await EnsureMemoryWithinLimit(memory, llmProvider, log);
-                    continue;
-                }
-
-                result = await chat.ExecuteAsync(action);
-                memory.Add($"unknown {toolName} -> chat {action} => {result}");
-                log($"MEMORY: unknown {toolName} -> chat {action} => {result}");
+                memory.Add($"unknown {toolName} -> no execution");
                 await EnsureMemoryWithinLimit(memory, llmProvider, log);
             }
             else
             {
                 result = await tool.ExecuteAsync(toolInput);
-                if (toolName == "web")
-                {
-                    log("Summarizing website content...");
-                    var summaryPrompt = $"Summarize the important information from this webpage for the goal '{goal}': {result}";
-                    var summary = await llmProvider.CompleteAsync(summaryPrompt);
-                    result = summary;
-                }
                 memory.Add($"{toolName} {toolInput} => {result}");
                 log($"MEMORY: {toolName} {toolInput} => {result}");
                 await EnsureMemoryWithinLimit(memory, llmProvider, log);
                 executed = true;
-            }
-
-            log(result);
-            if (toolName == "chat")
-            {
-                var canFinish = await llmProvider.CompleteAsync(
-                    "Based on our conversation so far, can you state the single best option " +
-                    "with a one-line rationale and then say DONE? Answer 'yes' or 'no'.");
-                if (canFinish.TrimStart().StartsWith("y", StringComparison.OrdinalIgnoreCase))
-                {
-                    nextTask = "Answer the best option now and append DONE.";
-                }
+                log(result);
             }
             if (executed)
             {
@@ -178,9 +136,9 @@ Loops remaining (including this one): {loopsLeft}.";
 Last result: '{context}'.
 Past actions: {mem}.
 Available tools: {tools}
-When calling the web tool, put the URL in quotes. Example: web ""https://example.com"".
+You can run any command in the container using the shell tool. Example: shell ""ls -la"".
 
-**CRITICAL** – Finish in as few steps as possible.
+**CRITICAL** - Finish in as few steps as possible.
         Respond ONLY with:
             <toolName> <input>
         or
@@ -191,7 +149,7 @@ You should answer DONE immediately when:
 * You already possess enough information to recommend the single best option
   (write it with a one-line justification), OR
 * The remaining unknowns would not change the top recommendation.
-If a question still matters to rank items, ask it with 'chat'.";
+";
 
         if (attempts > 0)
             prompt += " Your last response did not follow this format.";

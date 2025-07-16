@@ -1,1 +1,1 @@
-echo hello from mock data
+shell echo hello from mock data
