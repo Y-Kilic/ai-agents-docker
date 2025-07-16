@@ -6,6 +6,26 @@ namespace Agent.Runtime;
 
 public static class AgentRunner
 {
+    private const int MaxMemoryChars = 8000;
+
+    private static async Task EnsureMemoryWithinLimit(List<string> memory, ILLMProvider llmProvider, Action<string> log)
+    {
+        var text = string.Join("; ", memory);
+        while (text.Length > MaxMemoryChars * 2 && memory.Count > 1)
+        {
+            memory.RemoveAt(0);
+            text = string.Join("; ", memory);
+        }
+
+        if (text.Length > MaxMemoryChars)
+        {
+            log("Memory too long, summarizing...");
+            var summary = await llmProvider.CompleteAsync($"Summarize briefly: {text}");
+            memory.Clear();
+            memory.Add($"summary -> {summary}");
+            log($"MEMORY: summary -> {summary}");
+        }
+    }
     public static async Task<List<string>> RunAsync(string goal, ILLMProvider llmProvider, int loops = 5, Action<string>? log = null)
     {
         log ??= Console.WriteLine;
@@ -64,6 +84,13 @@ public static class AgentRunner
 
             log($"Looking up tool '{toolName}' among: {string.Join(", ", ToolRegistry.GetToolNames())}");
 
+            // Ask the LLM to explicitly state the intention before executing
+            var planPrompt =
+                $"In one short sentence, describe what you intend to accomplish by executing '{toolName} {toolInput}'.";
+            var planNote = await llmProvider.CompleteAsync(planPrompt);
+            memory.Add($"plan {toolName} {toolInput} -> {planNote}");
+            log($"MEMORY: plan {toolName} {toolInput} -> {planNote}");
+
             var tool = ToolRegistry.Get(toolName);
             string result;
             var executed = false;
@@ -76,18 +103,28 @@ public static class AgentRunner
                 {
                     log("Chat tool is not registered. Skipping this step.");
                     memory.Add($"unknown {toolName} -> no execution");
+                    await EnsureMemoryWithinLimit(memory, llmProvider, log);
                     continue;
                 }
 
                 result = await chat.ExecuteAsync(action);
                 memory.Add($"unknown {toolName} -> chat {action} => {result}");
                 log($"MEMORY: unknown {toolName} -> chat {action} => {result}");
+                await EnsureMemoryWithinLimit(memory, llmProvider, log);
             }
             else
             {
                 result = await tool.ExecuteAsync(toolInput);
+                if (toolName == "web")
+                {
+                    log("Summarizing website content...");
+                    var summaryPrompt = $"Summarize the important information from this webpage for the goal '{goal}': {result}";
+                    var summary = await llmProvider.CompleteAsync(summaryPrompt);
+                    result = summary;
+                }
                 memory.Add($"{toolName} {toolInput} => {result}");
                 log($"MEMORY: {toolName} {toolInput} => {result}");
+                await EnsureMemoryWithinLimit(memory, llmProvider, log);
                 executed = true;
             }
 
@@ -129,6 +166,8 @@ public static class AgentRunner
 
     private static async Task<string> PlanNextAction(string goal, string context, string loopsLeft, List<string> memory, ILLMProvider llmProvider, Action<string> log, int attempts = 0)
     {
+        await EnsureMemoryWithinLimit(memory, llmProvider, log);
+
         var tools = string.Join(", ", ToolRegistry.GetToolNames());
         var mem = memory.Count == 0 ? "none" : string.Join("; ", memory);
         var prompt = $@"You are an autonomous agent working toward the goal: '{goal}'.
