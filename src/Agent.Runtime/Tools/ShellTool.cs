@@ -25,15 +25,23 @@ public class ShellTool : ITool
             if ((input.StartsWith("\"") && input.EndsWith("\"")) || (input.StartsWith("'") && input.EndsWith("'")))
                 input = input.Substring(1, input.Length - 2);
 
-            var args = OperatingSystem.IsWindows()
-                ? $"/c {input}"
-                : $"-c \"{input.Replace("\"", "\\\"")}\"";
-
-            var psi = new ProcessStartInfo(shell, args)
+            var psi = new ProcessStartInfo
             {
+                FileName = shell,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true
             };
+
+            if (OperatingSystem.IsWindows())
+            {
+                psi.ArgumentList.Add("/c");
+                psi.ArgumentList.Add(input);
+            }
+            else
+            {
+                psi.ArgumentList.Add("-c");
+                psi.ArgumentList.Add(input);
+            }
             using var process = Process.Start(psi);
             if (process == null)
                 return "Failed to start shell";

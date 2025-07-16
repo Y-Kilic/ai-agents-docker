@@ -22,6 +22,7 @@ public class AgentRunnerTests
         Assert.Contains("shell \"echo hi\" => hi", memory);
     }
 
+
     [Fact]
     public async Task RunAsync_MissingTool_LogsAvailableTools()
     {
