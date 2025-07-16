@@ -18,6 +18,7 @@ public static class ToolRegistry
         Register(new ListTool(llmProvider));
         Register(new CompareTool(llmProvider));
         Register(new WebTool());
+        Register(new ShellTool());
     }
 
     public static void Register(ITool tool)
