@@ -35,6 +35,9 @@ public static class AgentRunner
         var i = 0;
         var unknownCount = 0;
         var nextTask = goal;
+        string? lastAction = null;
+        string? lastResult = null;
+        int repeatCount = 0;
         while (loops <= 0 || i < loops)
         {
             var loopMessage = loops <= 0
@@ -64,10 +67,20 @@ public static class AgentRunner
             var toolInput = parts.Length > 1 ? parts[1] : string.Empty;
             log($"Parsed toolName: '{toolName}' input: '{toolInput}'");
 
-            bool repeated = memory.LastOrDefault()?.StartsWith($"{toolName} {toolInput}", StringComparison.OrdinalIgnoreCase) ?? false;
+            bool repeated = lastAction != null && lastAction.Equals($"{toolName} {toolInput}", StringComparison.OrdinalIgnoreCase);
             if (repeated)
             {
+                repeatCount++;
                 log("Same command repeated with no progress.");
+                if (repeatCount >= 3)
+                {
+                    log("Stopping due to repeated command with no progress.");
+                    break;
+                }
+            }
+            else
+            {
+                repeatCount = 0;
             }
 
             log($"Looking up tool '{toolName}' among: {string.Join(", ", ToolRegistry.GetToolNames())}");
@@ -91,17 +104,25 @@ public static class AgentRunner
             else
             {
                 result = await tool.ExecuteAsync(toolInput);
-                memory.Add($"{toolName} {toolInput} => {result}");
-                log($"MEMORY: {toolName} {toolInput} => {result}");
+                var shortResult = result.Length > 200 ? result.Substring(0, 200) + "..." : result;
+                memory.Add($"{toolName} {toolInput} => {shortResult}");
+                log($"MEMORY: {toolName} {toolInput} => {shortResult}");
                 await EnsureMemoryWithinLimit(memory, llmProvider, log);
                 executed = true;
-                log(result);
+                log(shortResult);
             }
             if (executed)
             {
                 nextTask = $"Previous result: {result}. Determine the next step to achieve the goal.";
                 i++;
                 unknownCount = 0;
+                lastAction = $"{toolName} {toolInput}";
+                lastResult = result;
+                if (result.Contains("DONE", StringComparison.OrdinalIgnoreCase))
+                {
+                    log("Result indicates DONE. Stopping loop.");
+                    break;
+                }
             }
             else
             {
