@@ -71,7 +71,11 @@ running until stopped.
 
 ### Agent Connectivity
 
-................
+Agents run inside Docker containers which by default use Docker's bridge
+network. This means they can reach the internet to download packages or
+fetch remote data. If your host has a restrictive firewall, ensure the
+containers are allowed outbound access or run the orchestrator with a
+custom network mode, for example `--network host`.
 
 ## ⚙️ Architecture
 
