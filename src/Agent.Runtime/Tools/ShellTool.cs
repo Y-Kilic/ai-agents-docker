@@ -61,11 +61,14 @@ public class ShellTool : ITool
             var error = await process.StandardError.ReadToEndAsync();
             process.WaitForExit();
 
+            const int limit = 200;
             var result = new
             {
                 exit_code = process.ExitCode,
-                stdout = output.Length > 200 ? output[..200] : output,
-                stderr = error.Length > 200 ? error[..200] : error,
+                stdout = output.Length > limit ? output[..limit] : output,
+                stdout_trunc = output.Length > limit,
+                stderr = error.Length > limit ? error[..limit] : error,
+                stderr_trunc = error.Length > limit,
                 side_effect = GetSideEffectSummary(input)
             };
 

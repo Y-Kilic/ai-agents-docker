@@ -12,6 +12,7 @@ public class AgentRunnerTests
         var provider = new SequenceLLMProvider(new[] { "shell echo hi", "done" });
         var memory = await AgentRunner.RunAsync("test", provider, 2, _ => { });
         Assert.Contains(memory, m => m.Contains("\"stdout\":\"hi"));
+        Assert.Contains(memory, m => m.Contains("\"stdout_trunc\":false"));
     }
 
     [Fact]
@@ -20,6 +21,7 @@ public class AgentRunnerTests
         var provider = new SequenceLLMProvider(new[] { "shell \"echo hi\"", "done" });
         var memory = await AgentRunner.RunAsync("test", provider, 2, _ => { });
         Assert.Contains(memory, m => m.Contains("\"stdout\":\"hi"));
+        Assert.Contains(memory, m => m.Contains("\"stdout_trunc\":false"));
     }
 
 
