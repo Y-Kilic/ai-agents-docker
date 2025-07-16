@@ -145,6 +145,21 @@ public class AgentRunnerTests
         Assert.Equal("https://example.com", RegisteringProvider.CapturedInput);
     }
 
+    [Fact]
+    public async Task RunAsync_WebResult_IsSummarized()
+    {
+        var provider = new SequenceRegisteringProvider(new[]
+        {
+            "web https://example.com",
+            "plan",
+            "summary"
+        });
+
+        var memory = await AgentRunner.RunAsync("test", provider, 1, _ => { });
+
+        Assert.Equal("web https://example.com => summary", memory[1]);
+    }
+
     private class SequenceLLMProvider : ILLMProvider
     {
         private readonly Queue<string> _responses;
@@ -156,6 +171,27 @@ public class AgentRunnerTests
 
         public Task<string> CompleteAsync(string prompt, CancellationToken cancellationToken = default)
         {
+            return Task.FromResult(_responses.Count > 0 ? _responses.Dequeue() : string.Empty);
+        }
+    }
+
+    private class SequenceRegisteringProvider : ILLMProvider
+    {
+        private readonly Queue<string> _responses;
+        private bool _firstCall = true;
+
+        public SequenceRegisteringProvider(IEnumerable<string> responses)
+        {
+            _responses = new Queue<string>(responses);
+        }
+
+        public Task<string> CompleteAsync(string prompt, CancellationToken cancellationToken = default)
+        {
+            if (_firstCall)
+            {
+                _firstCall = false;
+                ToolRegistry.Register(new FakeWebTool());
+            }
             return Task.FromResult(_responses.Count > 0 ? _responses.Dequeue() : string.Empty);
         }
     }
@@ -204,10 +240,12 @@ public class AgentRunnerTests
     private class FakeWebTool : ITool
     {
         public string Name => "web";
+        public static string? LastInput { get; set; }
 
         public Task<string> ExecuteAsync(string input)
         {
             RegisteringProvider.CapturedInput = input;
+            LastInput = input;
             return Task.FromResult("ok");
         }
     }

@@ -103,18 +103,28 @@ public static class AgentRunner
                 {
                     log("Chat tool is not registered. Skipping this step.");
                     memory.Add($"unknown {toolName} -> no execution");
+                    await EnsureMemoryWithinLimit(memory, llmProvider, log);
                     continue;
                 }
 
                 result = await chat.ExecuteAsync(action);
                 memory.Add($"unknown {toolName} -> chat {action} => {result}");
                 log($"MEMORY: unknown {toolName} -> chat {action} => {result}");
+                await EnsureMemoryWithinLimit(memory, llmProvider, log);
             }
             else
             {
                 result = await tool.ExecuteAsync(toolInput);
+                if (toolName == "web")
+                {
+                    log("Summarizing website content...");
+                    var summaryPrompt = $"Summarize the important information from this webpage for the goal '{goal}': {result}";
+                    var summary = await llmProvider.CompleteAsync(summaryPrompt);
+                    result = summary;
+                }
                 memory.Add($"{toolName} {toolInput} => {result}");
                 log($"MEMORY: {toolName} {toolInput} => {result}");
+                await EnsureMemoryWithinLimit(memory, llmProvider, log);
                 executed = true;
             }
 
