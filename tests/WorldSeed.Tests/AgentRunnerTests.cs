@@ -108,6 +108,24 @@ public class AgentRunnerTests
     }
 
     [Fact]
+    public async Task RunAsync_SummarizesLongMemory()
+    {
+        var longText = new string('a', 9001);
+        var provider = new SequenceLLMProvider(new[]
+        {
+            "chat hi",
+            "plan1",
+            longText,
+            "no",
+            "done"
+        });
+
+        var memory = await AgentRunner.RunAsync("test", provider, 0, _ => { });
+
+        Assert.Contains("summary ->", memory[0]);
+    }
+
+    [Fact]
     public async Task RunAsync_LogsWhenDone()
     {
         var provider = new SequenceLLMProvider(new[] { "done" });

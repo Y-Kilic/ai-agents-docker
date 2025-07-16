@@ -6,6 +6,26 @@ namespace Agent.Runtime;
 
 public static class AgentRunner
 {
+    private const int MaxMemoryChars = 8000;
+
+    private static async Task EnsureMemoryWithinLimit(List<string> memory, ILLMProvider llmProvider, Action<string> log)
+    {
+        var text = string.Join("; ", memory);
+        while (text.Length > MaxMemoryChars * 2 && memory.Count > 1)
+        {
+            memory.RemoveAt(0);
+            text = string.Join("; ", memory);
+        }
+
+        if (text.Length > MaxMemoryChars)
+        {
+            log("Memory too long, summarizing...");
+            var summary = await llmProvider.CompleteAsync($"Summarize briefly: {text}");
+            memory.Clear();
+            memory.Add($"summary -> {summary}");
+            log($"MEMORY: summary -> {summary}");
+        }
+    }
     public static async Task<List<string>> RunAsync(string goal, ILLMProvider llmProvider, int loops = 5, Action<string>? log = null)
     {
         log ??= Console.WriteLine;
@@ -136,6 +156,8 @@ public static class AgentRunner
 
     private static async Task<string> PlanNextAction(string goal, string context, string loopsLeft, List<string> memory, ILLMProvider llmProvider, Action<string> log, int attempts = 0)
     {
+        await EnsureMemoryWithinLimit(memory, llmProvider, log);
+
         var tools = string.Join(", ", ToolRegistry.GetToolNames());
         var mem = memory.Count == 0 ? "none" : string.Join("; ", memory);
         var prompt = $@"You are an autonomous agent working toward the goal: '{goal}'.
