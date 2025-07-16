@@ -9,7 +9,7 @@ public class AgentRunnerTests
     [Fact]
     public async Task RunAsync_ExecutesShellTool()
     {
-        var provider = new SequenceLLMProvider(new[] { "shell echo hi", "done" });
+        var provider = new SequenceLLMProvider(new[] { "echo hi", "done" });
         var memory = await AgentRunner.RunAsync("test", provider, 2, _ => { });
         Assert.Contains(memory, m => m.Contains("\"stdout\":\"hi"));
         Assert.Contains(memory, m => m.Contains("\"stdout_trunc\":false"));
@@ -18,21 +18,13 @@ public class AgentRunnerTests
     [Fact]
     public async Task RunAsync_ExecutesShellTool_WithQuotedInput()
     {
-        var provider = new SequenceLLMProvider(new[] { "shell \"echo hi\"", "done" });
+        var provider = new SequenceLLMProvider(new[] { "echo hi", "done" });
         var memory = await AgentRunner.RunAsync("test", provider, 2, _ => { });
         Assert.Contains(memory, m => m.Contains("\"stdout\":\"hi"));
         Assert.Contains(memory, m => m.Contains("\"stdout_trunc\":false"));
     }
 
 
-    [Fact]
-    public async Task RunAsync_MissingTool_LogsAvailableTools()
-    {
-        var provider = new SequenceLLMProvider(new[] { "foo bar", "done" });
-        var logs = new List<string>();
-        await AgentRunner.RunAsync("test", provider, 1, logs.Add);
-        Assert.Contains(logs, l => l.Contains("Unrecognized tool"));
-    }
 
     [Fact]
     public async Task RunAsync_LogsWhenDone()
