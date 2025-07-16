@@ -139,12 +139,13 @@ Loops remaining (including this one): {loopsLeft}.";
 Last result: '{context}'.
 Past actions: {mem}.
 Available tools: {tools}
+When calling the web tool, put the URL in quotes.
 
 **CRITICAL** – Finish in as few steps as possible.
-Respond ONLY with:
-    <toolName> <input>
-or
-    DONE";
+        Respond ONLY with:
+            <toolName> <input>
+        or
+            DONE";
 
         prompt += @"
 You should answer DONE immediately when:
