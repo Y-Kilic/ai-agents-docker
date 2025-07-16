@@ -95,11 +95,11 @@ public static class AgentRunner
             if (toolName == "chat")
             {
                 var canFinish = await llmProvider.CompleteAsync(
-                    "Based on our conversation so far, can you state the single best supplement " +
+                    "Based on our conversation so far, can you state the single best option " +
                     "with a one-line rationale and then say DONE? Answer 'yes' or 'no'.");
                 if (canFinish.TrimStart().StartsWith("y", StringComparison.OrdinalIgnoreCase))
                 {
-                    nextTask = "Answer the best supplement now and append DONE.";
+                    nextTask = "Answer the best option now and append DONE.";
                 }
             }
             if (executed)
@@ -149,7 +149,7 @@ When calling the web tool, put the URL in quotes. Example: web ""https://example
 
         prompt += @"
 You should answer DONE immediately when:
-* You already possess enough information to recommend the single best supplement
+* You already possess enough information to recommend the single best option
   (write it with a one-line justification), OR
 * The remaining unknowns would not change the top recommendation.
 If a question still matters to rank items, ask it with 'chat'.";
