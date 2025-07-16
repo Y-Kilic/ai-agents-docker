@@ -10,7 +10,22 @@ public class ShellTool : ITool
     {
         try
         {
-            var psi = new ProcessStartInfo("/bin/bash", "-c \"" + input.Replace("\"", "\\\"") + "\"")
+            var shell = Environment.GetEnvironmentVariable("SHELL");
+            if (string.IsNullOrWhiteSpace(shell))
+            {
+                if (OperatingSystem.IsWindows())
+                    shell = "cmd.exe";
+                else if (File.Exists("/bin/bash"))
+                    shell = "/bin/bash";
+                else
+                    shell = "/bin/sh";
+            }
+
+            var args = OperatingSystem.IsWindows()
+                ? $"/c {input}"
+                : $"-c \"{input.Replace("\"", "\\\"")}\"";
+
+            var psi = new ProcessStartInfo(shell, args)
             {
                 RedirectStandardOutput = true,
                 RedirectStandardError = true
