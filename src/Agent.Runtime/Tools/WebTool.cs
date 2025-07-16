@@ -19,19 +19,21 @@ public class WebTool : ITool
         using var driver = new ChromeDriver(options);
         driver.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(30);
 
-        input = input.Trim().Trim('"');
+        var url = input.Trim().Trim('"');
+        Console.WriteLine($"[WebTool] Navigating to {url}");
 
         try
         {
-            driver.Navigate().GoToUrl(input);
+            driver.Navigate().GoToUrl(url);
             await Task.Delay(1000);
             var text = driver.PageSource;
             if (text.Length > 1000)
                 text = text.Substring(0, 1000);
             return text;
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"[WebTool] Failed to load {url}: {ex.Message}");
             return "Failed to load website";
         }
     }

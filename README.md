@@ -53,7 +53,8 @@ not match one of the registered tools the agent falls back to the `chat` tool.
 Ensure your language model is prompted to follow this format precisely. When
 using other models or custom prompts, verify that the first word corresponds to
 a valid tool name such as `chat`, `echo`, `list`, `compare`, or `web`.
-When calling the `web` tool, place the URL in quotes like `web "https://example.com"` so the parser does not split on spaces.
+When calling the `web` tool, place the URL in quotes, for example:
+`web "https://example.com"`.
 
 When an unknown tool is encountered the agent reuses the `chat` tool to handle
 the response. Such fallbacks do not count toward the configured loop limit, but
