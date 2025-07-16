@@ -30,6 +30,13 @@ public class ShellTool : ITool
             if (hashIndex >= 0)
                 input = input.Substring(0, hashIndex).Trim();
 
+            // automatically follow redirects for curl commands
+            if (input.StartsWith("curl ", StringComparison.Ordinal) && !input.Contains(" -L"))
+            {
+                var withoutCurl = input.Substring(5);
+                input = "curl -L " + withoutCurl;
+            }
+
             var psi = new ProcessStartInfo
             {
                 FileName = shell,
