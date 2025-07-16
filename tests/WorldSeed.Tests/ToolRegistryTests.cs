@@ -8,7 +8,7 @@ public class ToolRegistryTests
     [Fact]
     public void Initialize_RegistersBuiltInTools()
     {
-        ToolRegistry.Initialize(new MockOpenAIProvider(), new List<string>());
+        ToolRegistry.Initialize(new MockOpenAIProvider(), new List<string>(), _ => { });
 
         Assert.NotNull(ToolRegistry.Get("echo"));
         Assert.NotNull(ToolRegistry.Get("chat"));
@@ -27,7 +27,7 @@ public class ToolRegistryTests
     [Fact]
     public void Register_CustomTool_IsRetrievable()
     {
-        ToolRegistry.Initialize(new MockOpenAIProvider(), new List<string>());
+        ToolRegistry.Initialize(new MockOpenAIProvider(), new List<string>(), _ => { });
         var custom = new CustomTool();
         ToolRegistry.Register(custom);
 

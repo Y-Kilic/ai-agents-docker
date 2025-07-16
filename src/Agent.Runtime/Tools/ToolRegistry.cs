@@ -7,10 +7,11 @@ namespace Agent.Runtime.Tools;
 public static class ToolRegistry
 {
     private static readonly ConcurrentDictionary<string, ITool> _tools = new(StringComparer.OrdinalIgnoreCase);
-
-    public static void Initialize(ILLMProvider llmProvider, List<string> memory)
+    private static Action<string> _log = Console.WriteLine;
+    public static void Initialize(ILLMProvider llmProvider, List<string> memory, Action<string>? log = null)
     {
         _tools.Clear();
+        _log = log ?? Console.WriteLine;
         // Register built-in tools
         Register(new EchoTool());
         Register(new ChatTool(llmProvider, memory));
@@ -22,6 +23,11 @@ public static class ToolRegistry
     public static void Register(ITool tool)
     {
         _tools[tool.Name] = tool;
+    }
+
+    public static void Log(string message)
+    {
+        _log?.Invoke(message);
     }
 
     public static ITool? Get(string name)

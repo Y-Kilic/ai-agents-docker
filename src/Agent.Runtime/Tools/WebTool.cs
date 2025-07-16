@@ -21,6 +21,7 @@ public class WebTool : ITool
 
         var url = input.Trim().Trim('"');
         Console.WriteLine($"[WebTool] Navigating to {url}");
+        ToolRegistry.Log($"[WebTool] Navigating to {url}");
 
         try
         {
@@ -34,6 +35,7 @@ public class WebTool : ITool
         catch (Exception ex)
         {
             Console.WriteLine($"[WebTool] Failed to load {url}: {ex.Message}");
+            ToolRegistry.Log($"[WebTool] Failed to load {url}: {ex.Message}");
             return "Failed to load website";
         }
     }

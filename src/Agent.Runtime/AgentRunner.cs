@@ -10,7 +10,7 @@ public static class AgentRunner
     {
         log ??= Console.WriteLine;
         var memory = new List<string>();
-        ToolRegistry.Initialize(llmProvider, memory);
+        ToolRegistry.Initialize(llmProvider, memory, log);
 
         var i = 0;
         var unknownCount = 0;
