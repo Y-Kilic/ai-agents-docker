@@ -18,6 +18,7 @@ public class AgentOrchestrator
     private readonly ConcurrentDictionary<string, string> _containers = new();
     private readonly ConcurrentDictionary<string, List<string>> _localLogs = new();
     private readonly ConcurrentDictionary<string, int> _logOffsets = new();
+    private readonly ConcurrentDictionary<string, int> _memoryOffsets = new();
     private readonly Data.IUnitOfWork _uow;
     private readonly string _orchestratorUrl;
     private bool _useOpenAI;
@@ -92,8 +93,21 @@ public class AgentOrchestrator
             var logList = new List<string>();
             _localLogs[id] = logList;
             _logOffsets[id] = 0;
-            proc.OutputDataReceived += (s, e) => { if (e.Data != null) logList.Add(e.Data); };
-            proc.ErrorDataReceived += (s, e) => { if (e.Data != null) logList.Add(e.Data); };
+            _memoryOffsets[id] = 0;
+            proc.OutputDataReceived += (s, e) =>
+            {
+                if (e.Data != null)
+                {
+                    logList.Add(e.Data);
+                }
+            };
+            proc.ErrorDataReceived += (s, e) =>
+            {
+                if (e.Data != null)
+                {
+                    logList.Add(e.Data);
+                }
+            };
             proc.Exited += (s, e) =>
             {
                 _processes.TryRemove(id, out _);
@@ -169,6 +183,7 @@ public class AgentOrchestrator
 
         _containers[id] = container.ID;
         _logOffsets[id] = 0;
+        _memoryOffsets[id] = 0;
         var info = new AgentInfo(id, type);
         _uow.Agents.Add(info);
         await _uow.SaveChangesAsync();
@@ -192,11 +207,16 @@ public class AgentOrchestrator
                 proc.Dispose();
             }
             _uow.Agents.Remove(id);
+            _localLogs.TryRemove(id, out _);
+            _logOffsets.TryRemove(id, out _);
+            _memoryOffsets.TryRemove(id, out _);
             await _uow.SaveChangesAsync();
             return;
         }
 
         _uow.Agents.Remove(id);
+        _logOffsets.TryRemove(id, out _);
+        _memoryOffsets.TryRemove(id, out _);
         await _uow.SaveChangesAsync();
         if (_containers.TryRemove(id, out var containerId))
         {
@@ -235,8 +255,14 @@ public class AgentOrchestrator
 
     public async Task<List<string>> GetMemoryAsync(string id)
     {
-        var lines = await GetNewLogLinesAsync(id);
-        return lines.Where(l => l.StartsWith("MEMORY:")).Select(l => l.Substring(7).Trim()).ToList();
+        var allLines = await GetAllLogLinesAsync(id);
+        var memories = allLines.Where(l => l.StartsWith("MEMORY:")).Select(l => l.Substring(7).Trim()).ToList();
+        var offset = _memoryOffsets.GetOrAdd(id, 0);
+        if (offset >= memories.Count)
+            return new List<string>();
+        var result = memories.Skip(offset).ToList();
+        _memoryOffsets[id] = offset + result.Count;
+        return result;
     }
 
     private async Task<List<string>> GetNewLogLinesAsync(string id)
