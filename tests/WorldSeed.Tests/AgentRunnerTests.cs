@@ -36,12 +36,13 @@ public class AgentRunnerTests
     }
 
     [Fact]
-    public async Task RunAsync_StopsAfterRepeatedCommands()
+    public async Task RunAsync_HandlesRepeatedCommands()
     {
         var provider = new SequenceLLMProvider(new[] { "echo hi", "echo hi", "echo hi", "echo hi" });
         var logs = new List<string>();
-        await AgentRunner.RunAsync("test", provider, 10, logs.Add);
-        Assert.Contains(logs, l => l.Contains("Stopping due to repeated command"));
+        var memory = await AgentRunner.RunAsync("test", provider, 10, logs.Add);
+        Assert.Contains(logs, l => l.Contains("Repeated command with no progress"));
+        Assert.Contains(memory, m => m.StartsWith("repeat-detected"));
     }
 
     private class SequenceLLMProvider : ILLMProvider

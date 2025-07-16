@@ -61,8 +61,13 @@ public static class AgentRunner
                 repeatCount++;
                 if (repeatCount >= 3)
                 {
-                    log("Stopping due to repeated command with no progress.");
-                    break;
+                    log("Repeated command with no progress. Asking for new approach.");
+                    memory.Add($"repeat-detected -> {command}");
+                    nextTask = $"The command '{command}' was repeated {repeatCount} times with no progress. Try a different approach to achieve the goal.";
+                    repeatCount = 0;
+                    lastCommand = null;
+                    lastResult = null;
+                    continue;
                 }
             }
             else
