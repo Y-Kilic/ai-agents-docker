@@ -11,10 +11,15 @@ public class WebTool : ITool
     public async Task<string> ExecuteAsync(string input)
     {
         var options = new ChromeOptions();
-        options.AddArgument("--headless=new");
+        // Run Chrome in a more typical configuration so sites treat it like a
+        // regular browser.
         options.AddArgument("--no-sandbox");
         options.AddArgument("--disable-gpu");
         options.AddArgument("--disable-dev-shm-usage");
+        options.AddArgument("--disable-blink-features=AutomationControlled");
+        options.AddExcludedArgument("enable-automation");
+        options.AddArgument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36");
+        options.AddArgument("window-size=1920,1080");
         options.BinaryLocation = "/usr/bin/chromium-browser";
 
         try
@@ -35,7 +40,8 @@ public class WebTool : ITool
             try
             {
                 driver.Navigate().GoToUrl(url);
-                await Task.Delay(1000);
+                // Give the page some time to execute JavaScript after load.
+                await Task.Delay(2000);
                 var text = driver.PageSource;
                 return text;
             }
