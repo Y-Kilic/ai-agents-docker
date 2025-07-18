@@ -11,4 +11,5 @@ ENV PATH="/usr/lib/chromium-browser:$PATH"
 
 WORKDIR /app
 COPY ./src/Agent.Runtime/bin/Release/net8.0/ ./
+COPY ./src/Agent.Runtime/bin/Release/net8.0/plugins ./plugins
 ENTRYPOINT ["dotnet", "Agent.Runtime.dll"]

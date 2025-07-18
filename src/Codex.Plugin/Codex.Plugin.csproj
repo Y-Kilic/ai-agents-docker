@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Agent.Runtime\Agent.Runtime.csproj" />
+  </ItemGroup>
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <Target Name="CopyToRuntime" AfterTargets="Build">
+    <PropertyGroup>
+      <RuntimeOutput>$(MSBuildThisFileDirectory)..\Agent.Runtime\bin\$(Configuration)\$(TargetFramework)\plugins</RuntimeOutput>
+    </PropertyGroup>
+    <MakeDir Directories="$(RuntimeOutput)" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(RuntimeOutput)" />
+  </Target>
+</Project>

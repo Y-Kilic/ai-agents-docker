@@ -11,6 +11,10 @@ public class MockOpenAIProvider : ILLMProvider
 
     public Task<string> CompleteAsync(string prompt, CancellationToken cancellationToken = default)
     {
-        return Task.FromResult($"{_mockResponse}: {prompt}");
+        // Returning the prompt verbatim caused tests relying on this
+        // provider to detect keywords like "DONE" in the echoed text.
+        // To avoid unintended behaviour we simply return the mock
+        // response without appending the prompt.
+        return Task.FromResult(_mockResponse);
     }
 }

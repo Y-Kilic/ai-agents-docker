@@ -26,6 +26,7 @@
     <ProjectReference Include="..\..\src\Shared\Shared.csproj" />
     <ProjectReference Include="..\..\src\Agent.Runtime\Agent.Runtime.csproj" />
     <ProjectReference Include="..\..\src\Orchestrator.API\Orchestrator.API.csproj" />
+    <ProjectReference Include="..\..\src\Codex.Plugin\Codex.Plugin.csproj" />
   </ItemGroup>
 
 </Project>

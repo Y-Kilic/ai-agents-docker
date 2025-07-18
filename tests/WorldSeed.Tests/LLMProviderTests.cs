@@ -9,6 +9,6 @@ public class LLMProviderTests
     {
         var provider = new MockOpenAIProvider("test");
         var result = await provider.CompleteAsync("prompt");
-        Assert.Equal("test: prompt", result);
+        Assert.Equal("test", result);
     }
 }
