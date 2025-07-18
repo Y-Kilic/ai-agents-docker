@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Net.Http;
 
 namespace Orchestrator.API.Services;
 
@@ -32,6 +33,11 @@ public class AgentOrchestrator
         _useVm = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("USE_VM_AGENT"));
         _apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
         _useOpenAI = !string.IsNullOrWhiteSpace(_apiKey);
+
+        if (_useVm)
+        {
+            EnsureVmBaseImageAsync().GetAwaiter().GetResult();
+        }
         // Agents always communicate with the API over http://localhost:5000.
         // Containers inherit this value through the ORCHESTRATOR_URL environment
         // variable so logs and memory are posted back to the host API.
@@ -259,6 +265,22 @@ public class AgentOrchestrator
         }
 
         throw new InvalidOperationException($"Docker image '{ImageName}' not found. Build it before starting agents.");
+    }
+
+    private static async Task EnsureVmBaseImageAsync()
+    {
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var baseImg = Path.Combine(home, ".cache", "worldseed", "ubuntu-base.img");
+        if (File.Exists(baseImg))
+            return;
+
+        Directory.CreateDirectory(Path.GetDirectoryName(baseImg)!);
+        var url = "https://cloud-images.ubuntu.com/minimal/releases/jammy/release/ubuntu-22.04-minimal-cloudimg-amd64.img";
+        using var http = new HttpClient();
+        using var resp = await http.GetAsync(url);
+        resp.EnsureSuccessStatusCode();
+        await using var fs = File.Create(baseImg);
+        await resp.Content.CopyToAsync(fs);
     }
 
     public async Task<List<string>> GetMessagesAsync(string id)

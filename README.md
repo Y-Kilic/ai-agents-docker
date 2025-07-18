@@ -34,6 +34,9 @@ tools or run tests without affecting the host environment.
 Alternatively set `USE_VM_AGENT=1` to start each agent inside a lightweight
 Ubuntu virtual machine powered by **QEMU**. The orchestrator creates a temporary
 VM image under `/tmp/worldseed-vm/<id>` and removes it once the agent exits.
+When VM mode is enabled, the orchestrator checks for an Ubuntu cloud image in
+`~/.cache/worldseed/ubuntu-base.img` and downloads it automatically if it is
+missing so agents can start immediately.
 
 ### OpenAI Configuration
 
