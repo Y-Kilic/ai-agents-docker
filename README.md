@@ -31,12 +31,14 @@ spinning up containers. Each agent gets its own temporary workspace under
 `/tmp/worldseed/<id>` which is deleted when the agent stops, so it can install
 tools or run tests without affecting the host environment.
 
-Alternatively set `USE_VM_AGENT=1` to start each agent inside a lightweight
-Ubuntu virtual machine powered by **QEMU**. The orchestrator creates a temporary
-VM image under `/tmp/worldseed-vm/<id>` and removes it once the agent exits.
-When VM mode is enabled, the orchestrator checks for an Ubuntu cloud image in
-`~/.cache/worldseed/ubuntu-base.img` and downloads it automatically if it is
-missing so agents can start immediately.
+Agents run inside lightweight Ubuntu virtual machines powered by **QEMU** by
+default. Set `USE_VM_AGENT=0` to disable this behavior. The orchestrator
+creates a temporary VM image under `/tmp/worldseed-vm/<id>` and removes it once
+the agent exits. When VM mode is enabled, the orchestrator checks for an Ubuntu
+cloud image in `~/.cache/worldseed/ubuntu-base.img` and downloads it
+automatically if it is missing so agents can start immediately. Visit the **VM
+Status** page in the Blazor UI to see whether the base image is installed and
+how many instances are running or to launch a test VM.
 
 ### OpenAI Configuration
 

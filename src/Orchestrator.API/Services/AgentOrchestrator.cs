@@ -30,7 +30,7 @@ public class AgentOrchestrator
     {
         _uow = uow;
         _useLocal = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("USE_LOCAL_AGENT"));
-        _useVm = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("USE_VM_AGENT"));
+        _useVm = Environment.GetEnvironmentVariable("USE_VM_AGENT") != "0" && !_useLocal;
         _apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
         _useOpenAI = !string.IsNullOrWhiteSpace(_apiKey);
 
@@ -281,6 +281,27 @@ public class AgentOrchestrator
         resp.EnsureSuccessStatusCode();
         await using var fs = File.Create(baseImg);
         await resp.Content.CopyToAsync(fs);
+    }
+
+    public VmStatus GetVmStatus()
+    {
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var baseImg = Path.Combine(home, ".cache", "worldseed", "ubuntu-base.img");
+        var installed = File.Exists(baseImg);
+        return new VmStatus(_useVm, installed, _processes.Count);
+    }
+
+    public Task LaunchTestVmAsync()
+    {
+        if (!_useVm)
+            return Task.CompletedTask;
+        var psi = new ProcessStartInfo("bash", "scripts/run_test_vm.sh")
+        {
+            RedirectStandardOutput = false,
+            RedirectStandardError = false
+        };
+        Process.Start(psi);
+        return Task.CompletedTask;
     }
 
     public async Task<List<string>> GetMessagesAsync(string id)
