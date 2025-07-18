@@ -12,10 +12,8 @@ public static class AgentRunner
     // Hard-fail if ANY of these are false.
     private const string Rubric = """
 PASS when:
-  • Program.cs is valid C# 12 targeting .NET 8
-  • dotnet build -warnaserror succeeds with zero warnings
-  • dotnet run -- "3+4*2" prints 11
-  • dotnet run -- "(10/0)" prints Error (no exception)
+  • Code builds with no warnings using `codex test`
+  • All unit tests pass
 Otherwise respond FAIL with a bullet list of problems.
 """;
 
@@ -144,9 +142,10 @@ Otherwise respond FAIL with a bullet list of problems.
                 await EnsureMemoryWithinLimit(memory, llmProvider, log);
 
                 string critique;
-                if (toolName.Equals("dotnet", StringComparison.OrdinalIgnoreCase))
+                if (toolName.Equals("dotnet", StringComparison.OrdinalIgnoreCase) ||
+                    toolName.Equals("codex", StringComparison.OrdinalIgnoreCase))
                 {
-                    // dotnet tool already returns PASS/FAIL header.
+                    // codex and dotnet tools already return PASS/FAIL header.
                     critique = result;
                 }
                 else
@@ -223,10 +222,10 @@ Loops remaining (including this one): {loopsLeft}.";
 Last result: '{context}'.
 Past actions: {mem}.
 Available tools: {tools}
-All code MUST be valid C# 12 targeting .NET 8. Use only C# in your responses.
+Use the programming language specified in the goal. Avoid switching languages unless instructed.
 AFTER you output any code you MUST immediately call:
-    dotnet
-to build and run the tests; only after dotnet returns PASS may you declare DONE.
+    codex test
+to build and run the project; only after `codex test` returns PASS may you declare DONE.
 When calling the web tool, put the URL in quotes. Example: web ""https://example.com"".
 
 **CRITICAL** – Finish in as few steps as possible.

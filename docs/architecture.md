@@ -54,9 +54,9 @@ available when running agents inside containers.
 
 The Blazor interface now includes a **Codex** page so users can run plugin commands directly without creating an agent or overseer. The page shows the current status and recent Codex logs for visibility and provides a button to clear the logs.
 
-The agent planner now keeps a set of previously executed actions to avoid repeating the same sub-goal. Its prompt explicitly instructs the language model to output only valid C# 12 code targeting .NET 8 to prevent language drift.
+The agent planner now keeps a set of previously executed actions to avoid repeating the same sub-goal. Its prompt instructs the language model to stick to the language requested in the goal and to invoke `codex test` after emitting code so the result is validated automatically.
 
-To reduce hallucinations and infinite loops, the planner now uses a **pass/fail rubric** and a short **self‑critique** after each draft. If the rubric marks a step as failed, the planner retries up to **three** times before giving up. A built‑in `dotnet` tool compiles the project with warnings treated as errors and runs simple checks so the rubric receives ground‑truth PASS/FAIL results.
+To reduce hallucinations and infinite loops, the planner now uses a **pass/fail rubric** and a short **self‑critique** after each draft. If the rubric marks a step as failed, the planner retries up to **three** times before giving up. The Codex plugin's `test` command builds and runs the project so the rubric receives ground‑truth PASS/FAIL results.
 
 ### Next Cycle
 
