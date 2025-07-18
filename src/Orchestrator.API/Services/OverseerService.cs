@@ -104,7 +104,8 @@ public class OverseerService
         var currentGoal = subgoal;
         while (!state.Cancellation.IsCancellationRequested)
         {
-            var agentId = await _agents.StartAgentAsync(currentGoal, AgentType.Default, state.Loops);
+            var combinedGoal = $"Main goal: {state.Goal}\nSubgoal: {currentGoal}";
+            var agentId = await _agents.StartAgentAsync(combinedGoal, AgentType.Default, state.Loops);
             state.AgentIds.Add(agentId);
             state.Logs.Add($"Started agent {agentId} for subgoal '{currentGoal}'");
 

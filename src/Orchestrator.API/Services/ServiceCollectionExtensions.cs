@@ -15,6 +15,8 @@ public static class ServiceCollectionExtensions
             : new Shared.LLM.OpenAIProvider(apiKey);
         services.AddSingleton(llm);
 
+        services.AddSingleton<CodexService>();
+
         services.AddSingleton<OverseerService>();
         return services;
     }

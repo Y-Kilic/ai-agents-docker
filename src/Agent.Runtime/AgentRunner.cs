@@ -1,12 +1,21 @@
 using Agent.Runtime.Tools;
 using Shared.LLM;
+using System;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace Agent.Runtime;
 
 public static class AgentRunner
 {
     private const int MaxMemoryChars = 8000;
+    // Hard-fail if ANY of these are false.
+    private const string Rubric = """
+PASS when:
+  • Code builds with no warnings using `codex test`
+  • All unit tests pass
+Otherwise respond FAIL with a bullet list of problems.
+""";
 
     private static async Task EnsureMemoryWithinLimit(List<string> memory, ILLMProvider llmProvider, Action<string> log)
     {
@@ -34,7 +43,9 @@ public static class AgentRunner
 
         var i = 0;
         var unknownCount = 0;
+        var critiqueFailures = 0;
         var nextTask = goal;
+        var seenActions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         while (loops <= 0 || i < loops)
         {
             var loopMessage = loops <= 0
@@ -65,7 +76,11 @@ public static class AgentRunner
             log($"Parsed toolName: '{toolName}' input: '{toolInput}'");
 
             bool madeProgress = !memory.LastOrDefault()?.StartsWith($"{toolName} {toolInput}", StringComparison.OrdinalIgnoreCase) ?? true;
-            if (!madeProgress)
+            bool duplicate = !seenActions.Add($"{toolName} {toolInput}");
+            if (toolName.Equals("chat", StringComparison.OrdinalIgnoreCase) &&
+                memory.LastOrDefault()?.StartsWith("chat", StringComparison.OrdinalIgnoreCase) == true)
+                duplicate = true;   // consecutive chat ≈ no progress
+            if (!madeProgress || duplicate)
             {
                 toolName = "chat";
                 toolInput = $"We just repeated the same command and made no progress. Summarise what we know and decide the next DISTINCT step toward '{goal}'.";
@@ -125,6 +140,35 @@ public static class AgentRunner
                 memory.Add($"{toolName} {toolInput} => {result}");
                 log($"MEMORY: {toolName} {toolInput} => {result}");
                 await EnsureMemoryWithinLimit(memory, llmProvider, log);
+
+                string critique;
+                if (toolName.Equals("dotnet", StringComparison.OrdinalIgnoreCase) ||
+                    toolName.Equals("codex", StringComparison.OrdinalIgnoreCase))
+                {
+                    // codex and dotnet tools already return PASS/FAIL header.
+                    critique = result;
+                }
+                else
+                {
+                    // Ask the LLM to judge any other result against the rubric.
+                    critique = await llmProvider.CompleteAsync($"Rubric:\n{Rubric}\nResult:\n{result}\nRespond PASS or FAIL with a short critique.");
+                }
+                memory.Add($"critique -> {critique}");
+                log($"MEMORY: critique -> {critique}");
+                if (critique.StartsWith("FAIL", StringComparison.OrdinalIgnoreCase))
+                {
+                    critiqueFailures++;
+                    if (critiqueFailures >= 3)
+                    {
+                        log("Retry budget exhausted.");
+                        break;
+                    }
+                }
+                else
+                {
+                    critiqueFailures = 0;
+                }
+
                 executed = true;
             }
 
@@ -178,6 +222,10 @@ Loops remaining (including this one): {loopsLeft}.";
 Last result: '{context}'.
 Past actions: {mem}.
 Available tools: {tools}
+Use the programming language specified in the goal. Avoid switching languages unless instructed.
+AFTER you output any code you MUST immediately call:
+    codex test
+to build and run the project; only after `codex test` returns PASS may you declare DONE.
 When calling the web tool, put the URL in quotes. Example: web ""https://example.com"".
 
 **CRITICAL** – Finish in as few steps as possible.
@@ -206,6 +254,12 @@ If a question still matters to rank items, ask it with 'chat'.";
         var potentialToolName = line.Split(new[] { ' ', ':' }, 2, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
         var potentialInput = line.Contains(' ') ? line.Substring(line.IndexOf(' ') + 1) : string.Empty;
         log($"Parsed toolName: '{potentialToolName}' input: '{potentialInput}'");
+
+        if (potentialToolName == "chat" && potentialInput.Contains("```python"))
+        {
+            log("Planner tried to output Python; rejecting.");
+            return await PlanNextAction(goal, context, loopsLeft, memory, llmProvider, log, attempts + 1);
+        }
 
         if (result.Contains("DONE", StringComparison.OrdinalIgnoreCase))
         {

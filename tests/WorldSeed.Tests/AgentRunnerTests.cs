@@ -14,10 +14,12 @@ public class AgentRunnerTests
             "chat What is the capital of France?",
             "plan1",
             "The capital of France is Paris.",
+            "PASS",
             "no",
             "chat What is the capital of Belgium?",
             "plan2",
             "The capital of Belgium is Brussels.",
+            "PASS",
             "no"
         });
 
@@ -27,9 +29,8 @@ public class AgentRunnerTests
             2,
             _ => { });
 
-        Assert.Equal(4, memory.Count);
-        Assert.Equal("chat What is the capital of France? => The capital of France is Paris.", memory[1]);
-        Assert.Equal("chat What is the capital of Belgium? => The capital of Belgium is Brussels.", memory[3]);
+        Assert.Contains("chat What is the capital of France? => The capital of France is Paris.", memory);
+        Assert.Contains("chat What is the capital of Belgium? => The capital of Belgium is Brussels.", memory);
     }
 
     [Fact]
@@ -74,19 +75,20 @@ public class AgentRunnerTests
             "chat step one",
             "plan1",
             "result one",
+            "PASS",
             "no",
             "chat step two",
             "plan2",
             "result two",
+            "PASS",
             "no",
             "done"
         });
 
         var memory = await AgentRunner.RunAsync("test", provider, 0, _ => { });
 
-        Assert.Equal(4, memory.Count);
-        Assert.Equal("chat step one => result one", memory[1]);
-        Assert.Equal("chat step two => result two", memory[3]);
+        Assert.Contains("chat step one => result one", memory);
+        Assert.Contains("chat step two => result two", memory);
     }
 
     [Fact]
@@ -103,8 +105,8 @@ public class AgentRunnerTests
 
         await AgentRunner.RunAsync("test", provider, 0, _ => { });
 
-        Assert.Contains("History:", provider.Prompts[2]);
-        Assert.Contains("chat hi => pong", provider.Prompts[4]);
+        Assert.Contains(provider.Prompts, p => p.Contains("History:"));
+        Assert.Contains(provider.Prompts, p => p.Contains("chat hi => pong"));
     }
 
     [Fact]
@@ -158,6 +160,21 @@ public class AgentRunnerTests
         var memory = await AgentRunner.RunAsync("test", provider, 1, _ => { });
 
         Assert.Equal("web https://example.com => summary", memory[1]);
+    }
+
+    [Fact]
+    public async Task RunAsync_AddsCritiqueToMemory()
+    {
+        var provider = new SequenceLLMProvider(new[]
+        {
+            "echo hi",
+            "note",
+            "PASS good"
+        });
+
+        var memory = await AgentRunner.RunAsync("test", provider, 1, _ => { });
+
+        Assert.Contains(memory, m => m.StartsWith("critique ->"));
     }
 
     private class SequenceLLMProvider : ILLMProvider
