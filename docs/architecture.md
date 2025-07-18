@@ -56,7 +56,7 @@ The Blazor interface now includes a **Codex** page so users can run plugin comma
 
 The agent planner now keeps a set of previously executed actions to avoid repeating the same sub-goal. Its prompt explicitly instructs the language model to output only valid C# 12 code targeting .NET 8 to prevent language drift.
 
-To reduce hallucinations and infinite loops, the planner now uses a **pass/fail rubric** and a short **self‑critique** after each draft. If the rubric marks a step as failed, the planner retries up to **three** times before giving up. A new `codex test` command lets the system run unit tests so the rubric can rely on real build results instead of guesses.
+To reduce hallucinations and infinite loops, the planner now uses a **pass/fail rubric** and a short **self‑critique** after each draft. If the rubric marks a step as failed, the planner retries up to **three** times before giving up. A built‑in `dotnet` tool compiles the project with warnings treated as errors and runs simple checks so the rubric receives ground‑truth PASS/FAIL results.
 
 ### Next Cycle
 

@@ -9,7 +9,15 @@ namespace Agent.Runtime;
 public static class AgentRunner
 {
     private const int MaxMemoryChars = 8000;
-    private const string Rubric = "PASS when the step compiles and all tests succeed; otherwise FAIL.";
+    // Hard-fail if ANY of these are false.
+    private const string Rubric = """
+PASS when:
+  • Program.cs is valid C# 12 targeting .NET 8
+  • dotnet build -warnaserror succeeds with zero warnings
+  • dotnet run -- "3+4*2" prints 11
+  • dotnet run -- "(10/0)" prints Error (no exception)
+Otherwise respond FAIL with a bullet list of problems.
+""";
 
     private static async Task EnsureMemoryWithinLimit(List<string> memory, ILLMProvider llmProvider, Action<string> log)
     {
@@ -71,6 +79,9 @@ public static class AgentRunner
 
             bool madeProgress = !memory.LastOrDefault()?.StartsWith($"{toolName} {toolInput}", StringComparison.OrdinalIgnoreCase) ?? true;
             bool duplicate = !seenActions.Add($"{toolName} {toolInput}");
+            if (toolName.Equals("chat", StringComparison.OrdinalIgnoreCase) &&
+                memory.LastOrDefault()?.StartsWith("chat", StringComparison.OrdinalIgnoreCase) == true)
+                duplicate = true;   // consecutive chat ≈ no progress
             if (!madeProgress || duplicate)
             {
                 toolName = "chat";
@@ -132,7 +143,17 @@ public static class AgentRunner
                 log($"MEMORY: {toolName} {toolInput} => {result}");
                 await EnsureMemoryWithinLimit(memory, llmProvider, log);
 
-                var critique = await llmProvider.CompleteAsync($"Rubric: {Rubric}\nResult: {result}\nRespond PASS or FAIL with a short critique.");
+                string critique;
+                if (toolName.Equals("dotnet", StringComparison.OrdinalIgnoreCase))
+                {
+                    // dotnet tool already returns PASS/FAIL header.
+                    critique = result;
+                }
+                else
+                {
+                    // Ask the LLM to judge any other result against the rubric.
+                    critique = await llmProvider.CompleteAsync($"Rubric:\n{Rubric}\nResult:\n{result}\nRespond PASS or FAIL with a short critique.");
+                }
                 memory.Add($"critique -> {critique}");
                 log($"MEMORY: critique -> {critique}");
                 if (critique.StartsWith("FAIL", StringComparison.OrdinalIgnoreCase))
@@ -203,6 +224,9 @@ Last result: '{context}'.
 Past actions: {mem}.
 Available tools: {tools}
 All code MUST be valid C# 12 targeting .NET 8. Use only C# in your responses.
+AFTER you output any code you MUST immediately call:
+    dotnet
+to build and run the tests; only after dotnet returns PASS may you declare DONE.
 When calling the web tool, put the URL in quotes. Example: web ""https://example.com"".
 
 **CRITICAL** – Finish in as few steps as possible.
@@ -231,6 +255,12 @@ If a question still matters to rank items, ask it with 'chat'.";
         var potentialToolName = line.Split(new[] { ' ', ':' }, 2, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
         var potentialInput = line.Contains(' ') ? line.Substring(line.IndexOf(' ') + 1) : string.Empty;
         log($"Parsed toolName: '{potentialToolName}' input: '{potentialInput}'");
+
+        if (potentialToolName == "chat" && potentialInput.Contains("```python"))
+        {
+            log("Planner tried to output Python; rejecting.");
+            return await PlanNextAction(goal, context, loopsLeft, memory, llmProvider, log, attempts + 1);
+        }
 
         if (result.Contains("DONE", StringComparison.OrdinalIgnoreCase))
         {
