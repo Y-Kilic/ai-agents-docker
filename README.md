@@ -27,7 +27,13 @@ Both the backend (Orchestrator.API) and the Blazor UI run on the same local mach
 If Docker is not available on your system you can still run the agents locally.
 Set the environment variable `USE_LOCAL_AGENT=1` before starting the orchestrator
 and it will launch agent processes directly using `dotnet run` instead of
-spinning up containers.
+spinning up containers. Each agent gets its own temporary workspace under
+`/tmp/worldseed/<id>` which is deleted when the agent stops, so it can install
+tools or run tests without affecting the host environment.
+
+Alternatively set `USE_VM_AGENT=1` to start each agent inside a lightweight
+Ubuntu virtual machine powered by **QEMU**. The orchestrator creates a temporary
+VM image under `/tmp/worldseed-vm/<id>` and removes it once the agent exits.
 
 ### OpenAI Configuration
 
