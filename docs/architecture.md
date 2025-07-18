@@ -56,6 +56,8 @@ The Blazor interface now includes a **Codex** page so users can run plugin comma
 
 The agent planner now keeps a set of previously executed actions to avoid repeating the same sub-goal. Its prompt instructs the language model to stick to the language requested in the goal and to invoke `codex test` after emitting code so the result is validated automatically.
 
+The overseer now launches each agent with both the main goal and the specific subgoal so each task is pursued in context.
+
 To reduce hallucinations and infinite loops, the planner now uses a **pass/fail rubric** and a short **self‑critique** after each draft. If the rubric marks a step as failed, the planner retries up to **three** times before giving up. The Codex plugin's `test` command builds and runs the project so the rubric receives ground‑truth PASS/FAIL results.
 
 ### Next Cycle
