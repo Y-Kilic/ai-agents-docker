@@ -1,5 +1,6 @@
 using Agent.Runtime.Tools;
 using Shared.LLM;
+using System;
 using System.Linq;
 using System.Collections.Generic;
 
@@ -8,6 +9,7 @@ namespace Agent.Runtime;
 public static class AgentRunner
 {
     private const int MaxMemoryChars = 8000;
+    private const string Rubric = "PASS when the step compiles and all tests succeed; otherwise FAIL.";
 
     private static async Task EnsureMemoryWithinLimit(List<string> memory, ILLMProvider llmProvider, Action<string> log)
     {
@@ -35,6 +37,7 @@ public static class AgentRunner
 
         var i = 0;
         var unknownCount = 0;
+        var critiqueFailures = 0;
         var nextTask = goal;
         var seenActions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         while (loops <= 0 || i < loops)
@@ -128,6 +131,24 @@ public static class AgentRunner
                 memory.Add($"{toolName} {toolInput} => {result}");
                 log($"MEMORY: {toolName} {toolInput} => {result}");
                 await EnsureMemoryWithinLimit(memory, llmProvider, log);
+
+                var critique = await llmProvider.CompleteAsync($"Rubric: {Rubric}\nResult: {result}\nRespond PASS or FAIL with a short critique.");
+                memory.Add($"critique -> {critique}");
+                log($"MEMORY: critique -> {critique}");
+                if (critique.StartsWith("FAIL", StringComparison.OrdinalIgnoreCase))
+                {
+                    critiqueFailures++;
+                    if (critiqueFailures >= 3)
+                    {
+                        log("Retry budget exhausted.");
+                        break;
+                    }
+                }
+                else
+                {
+                    critiqueFailures = 0;
+                }
+
                 executed = true;
             }
 

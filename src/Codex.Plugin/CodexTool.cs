@@ -31,6 +31,7 @@ public class CodexTool : ITool
             "annotate" => await AnnotateFileAsync(arg),
             "build" => BuildProject(arg),
             "run" => RunProject(arg),
+            "test" => TestProject(arg),
             "tools" => ListTools(),
             _ => $"Unknown codex command: {command}"
         };
@@ -278,6 +279,14 @@ public class CodexTool : ITool
         var args = string.IsNullOrWhiteSpace(arg)
             ? "run"
             : $"run --project \"{arg}\"";
+        return RunDotnet(args);
+    }
+
+    private static string TestProject(string arg)
+    {
+        var args = string.IsNullOrWhiteSpace(arg)
+            ? "test -v minimal"
+            : $"test \"{arg}\" -v minimal";
         return RunDotnet(args);
     }
 

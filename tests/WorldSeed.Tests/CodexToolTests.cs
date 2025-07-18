@@ -141,6 +141,22 @@ public class CodexToolTests
         Assert.Contains("Hello, World", result);
     }
 
+    [Fact]
+    public async Task Test_RunsUnitTests()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        Directory.CreateDirectory(tempDir);
+        var originalDir = Directory.GetCurrentDirectory();
+        Directory.SetCurrentDirectory(tempDir);
+
+        Run("dotnet new xunit -n MyTests");
+        var tool = new CodexTool();
+        var output = await tool.ExecuteAsync($"test MyTests/MyTests.csproj");
+
+        Directory.SetCurrentDirectory(originalDir);
+        Assert.Contains("Passed:", output);
+    }
+
     private class RecordingProvider : ILLMProvider
     {
         private readonly string _resp;
