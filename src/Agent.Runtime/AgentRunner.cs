@@ -1,6 +1,7 @@
 using Agent.Runtime.Tools;
 using Shared.LLM;
 using System.Linq;
+using System.Collections.Generic;
 
 namespace Agent.Runtime;
 
@@ -35,6 +36,7 @@ public static class AgentRunner
         var i = 0;
         var unknownCount = 0;
         var nextTask = goal;
+        var seenActions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         while (loops <= 0 || i < loops)
         {
             var loopMessage = loops <= 0
@@ -65,7 +67,8 @@ public static class AgentRunner
             log($"Parsed toolName: '{toolName}' input: '{toolInput}'");
 
             bool madeProgress = !memory.LastOrDefault()?.StartsWith($"{toolName} {toolInput}", StringComparison.OrdinalIgnoreCase) ?? true;
-            if (!madeProgress)
+            bool duplicate = !seenActions.Add($"{toolName} {toolInput}");
+            if (!madeProgress || duplicate)
             {
                 toolName = "chat";
                 toolInput = $"We just repeated the same command and made no progress. Summarise what we know and decide the next DISTINCT step toward '{goal}'.";
@@ -178,6 +181,7 @@ Loops remaining (including this one): {loopsLeft}.";
 Last result: '{context}'.
 Past actions: {mem}.
 Available tools: {tools}
+All code MUST be valid C# 12 targeting .NET 8. Use only C# in your responses.
 When calling the web tool, put the URL in quotes. Example: web ""https://example.com"".
 
 **CRITICAL** – Finish in as few steps as possible.

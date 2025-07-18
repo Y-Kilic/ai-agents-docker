@@ -54,9 +54,12 @@ available when running agents inside containers.
 
 The Blazor interface now includes a **Codex** page so users can run plugin commands directly without creating an agent or overseer. The page shows the current status and recent Codex logs for visibility and provides a button to clear the logs.
 
+The agent planner now keeps a set of previously executed actions to avoid repeating the same sub-goal. Its prompt explicitly instructs the language model to output only valid C# 12 code targeting .NET 8 to prevent language drift.
+
 ### Next Cycle
 
 * Provide an interactive preview before applying patches.
 * Improve error handling when commits fail or patches do not apply.
 * Add an undo command to revert the last Codex patch.
 * Expose a command to run unit tests after building for quick validation.
+* Persist a manifest of finished sub-goals and verify the code compiles to tighten the DONE criteria.
