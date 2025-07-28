@@ -10,8 +10,16 @@ public static class PluginLoader
         if (!Directory.Exists(pluginDirectory))
             return;
 
+        var disableCodex = Environment.GetEnvironmentVariable("DISABLE_CODEX");
+
         foreach (var dll in Directory.GetFiles(pluginDirectory, "*.dll"))
         {
+            if (!string.IsNullOrEmpty(disableCodex) &&
+                Path.GetFileName(dll).StartsWith("Codex", StringComparison.OrdinalIgnoreCase))
+            {
+                ToolRegistry.Log("Codex plugin disabled via DISABLE_CODEX");
+                continue;
+            }
             try
             {
                 var asm = Assembly.LoadFrom(dll);
