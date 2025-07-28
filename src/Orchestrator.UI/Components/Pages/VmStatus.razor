@@ -1,0 +1,39 @@
+@page "/vm"
+@rendermode InteractiveServer
+@using VmStatusModel = Shared.Models.VmStatus
+@inject HttpClient Http
+
+<PageTitle>VM Status</PageTitle>
+
+<h1>Ubuntu VM Status</h1>
+
+@if (info == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <dl>
+        <dt>Enabled</dt>
+        <dd>@info.Enabled</dd>
+        <dt>Base Image Installed</dt>
+        <dd>@info.BaseImagePresent</dd>
+        <dt>Running Instances</dt>
+        <dd>@info.RunningCount</dd>
+    </dl>
+    <button class="btn btn-secondary" @onclick="LaunchTest">Launch Test VM</button>
+}
+
+@code {
+    private VmStatusModel? info;
+
+    protected override async Task OnInitializedAsync()
+    {
+        info = await Http.GetFromJsonAsync<VmStatusModel>("api/vm/status");
+    }
+
+    private async Task LaunchTest()
+    {
+        await Http.PostAsync("api/vm/test", null);
+    }
+}
