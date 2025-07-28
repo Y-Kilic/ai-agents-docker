@@ -46,6 +46,8 @@ Otherwise respond FAIL with a bullet list of problems.
         var critiqueFailures = 0;
         var nextTask = goal;
         var seenActions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        string? lastTerminalInput = null;
+        int lastTerminalExit = 0;
         while (loops <= 0 || i < loops)
         {
             var loopMessage = loops <= 0
@@ -56,6 +58,14 @@ Otherwise respond FAIL with a bullet list of problems.
             var loopsLeft = loops <= 0 ? "unlimited" : (loops - i).ToString();
             var action = await PlanNextAction(goal, nextTask, loopsLeft, memory, llmProvider, log);
             log($"Planner returned action: '{action}'");
+
+            action = Sanitize(action);
+
+            if (!ValidAction(action))
+            {
+                log($"Invalid action '{action}', switching to chat");
+                action = "chat We produced an invalid command. Summarise progress and propose the next correct step.";
+            }
 
             if (string.Equals(action, "done", StringComparison.OrdinalIgnoreCase))
             {
@@ -130,6 +140,28 @@ Otherwise respond FAIL with a bullet list of problems.
             else
             {
                 result = await tool.ExecuteAsync(toolInput);
+                if (toolName == "terminal" && tool is TerminalTool termTool)
+                {
+                    if (lastTerminalInput == toolInput && termTool.LastExitCode != 0 && lastTerminalExit != 0)
+                    {
+                        log("Terminal command failed twice. Retrying with heredoc.");
+                        var safe = $"cat > /tmp/agent_cmd.sh <<'CMD'\n{toolInput}\nCMD\nbash /tmp/agent_cmd.sh";
+                        result = await termTool.ExecuteAsync(safe);
+                        toolInput = safe;
+                    }
+                    lastTerminalInput = toolInput;
+                    lastTerminalExit = termTool.LastExitCode;
+
+                    var codex = ToolRegistry.Get("codex");
+                    if (codex != null)
+                    {
+                        var testResult = await codex.ExecuteAsync("test");
+                        memory.Add($"codex test => {testResult}");
+                        log($"MEMORY: codex test => {testResult}");
+                        log(testResult);
+                    }
+                }
+                
                 if (toolName == "web")
                 {
                     log("Summarizing website content...");
@@ -248,6 +280,8 @@ If a question still matters to rank items, ask it with 'chat'.";
         var result = await llmProvider.CompleteAsync(prompt);
         log($"PlanNextAction result: {result}");
 
+        result = Sanitize(result);
+
         var line = result.Split('\n')[0].Trim().TrimEnd('.', '!');
         log($"PlanNextAction parsed line: {line}");
 
@@ -274,5 +308,28 @@ If a question still matters to rank items, ask it with 'chat'.";
         }
 
         return line;
+    }
+
+    private static string Sanitize(string text)
+    {
+        return System.Text.RegularExpressions.Regex.Replace(text, "[^\x09\x0A\x0D\x20-\x7E]", string.Empty);
+    }
+
+    private static bool ValidAction(string line)
+    {
+        if (line.Equals("DONE", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        var ok = System.Text.RegularExpressions.Regex.IsMatch(line, "^(terminal|codex|echo|compare|web|dotnet|list|chat)\\s.+$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        if (!ok)
+            return false;
+
+        if (line.Contains(';'))
+            return false;
+
+        if (line.StartsWith("terminal", StringComparison.OrdinalIgnoreCase) && line.Contains("codex test", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        return true;
     }
 }
