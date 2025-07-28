@@ -192,7 +192,7 @@ Otherwise respond FAIL with a bullet list of problems.
                         log(testResult);
                     }
                 }
-                
+
                 if (toolName == "web")
                 {
                     log("Summarizing website content...");
