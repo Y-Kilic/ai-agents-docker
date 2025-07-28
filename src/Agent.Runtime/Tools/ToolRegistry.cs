@@ -22,6 +22,7 @@ public static class ToolRegistry
         Register(new CompareTool(llmProvider));
         Register(new WebTool());
         Register(new DotnetTool());
+        Register(new TerminalTool());
         // Load any external plugins from the plugins directory
         PluginLoader.LoadPlugins();
     }
