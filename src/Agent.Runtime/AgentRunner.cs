@@ -1,6 +1,7 @@
 using Agent.Runtime.Tools;
 using Shared.LLM;
 using System;
+using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 
@@ -16,6 +17,27 @@ PASS when:
   • All unit tests pass
 Otherwise respond FAIL with a bullet list of problems.
 """;
+
+    private static bool ShouldRunCodex(string goal, string workspace)
+    {
+        if (goal.Contains("do not use codex", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (ToolRegistry.Get("codex") == null)
+            return false;
+
+        bool dotnet = Directory.GetFiles(workspace, "*.sln", SearchOption.AllDirectories).Any() ||
+                      Directory.GetFiles(workspace, "*.csproj", SearchOption.AllDirectories).Any();
+        if (dotnet)
+            return true;
+
+        bool pyTests = Directory.GetFiles(workspace, "*test*.py", SearchOption.AllDirectories).Any();
+        bool pyFiles = Directory.GetFiles(workspace, "*.py", SearchOption.AllDirectories).Any();
+        if (pyTests || pyFiles)
+            return false;
+
+        return false;
+    }
 
     private static async Task EnsureMemoryWithinLimit(List<string> memory, ILLMProvider llmProvider, Action<string> log)
     {
@@ -153,15 +175,24 @@ Otherwise respond FAIL with a bullet list of problems.
                     lastTerminalExit = termTool.LastExitCode;
 
                     var codex = ToolRegistry.Get("codex");
-                    if (codex != null)
+                    if (codex != null && ShouldRunCodex(goal, Directory.GetCurrentDirectory()))
                     {
                         var testResult = await codex.ExecuteAsync("test");
                         memory.Add($"codex test => {testResult}");
                         log($"MEMORY: codex test => {testResult}");
                         log(testResult);
                     }
+                    else if (codex == null &&
+                             (Directory.GetFiles(Directory.GetCurrentDirectory(), "*.sln", SearchOption.AllDirectories).Any() ||
+                              Directory.GetFiles(Directory.GetCurrentDirectory(), "*.csproj", SearchOption.AllDirectories).Any()))
+                    {
+                        var testResult = await termTool.ExecuteAsync("dotnet test -v minimal");
+                        memory.Add($"terminal dotnet test => {testResult}");
+                        log($"MEMORY: terminal dotnet test => {testResult}");
+                        log(testResult);
+                    }
                 }
-                
+
                 if (toolName == "web")
                 {
                     log("Summarizing website content...");
