@@ -14,12 +14,10 @@ When Docker is unavailable the orchestrator can fall back to launching the agent
 process locally.
 
 Container safeguards include:
-
 - **Resource Limits** – CPU and memory quotas applied per container.
 - **Volumes** – a dedicated `/agent` volume is mounted for state.
 - **Network** – can be disabled per agent for offline execution.
-- **Seccomp Profile** – `docker/profiles/seccomp-agent.json` restricts system calls.
-- **AppArmor** – profile `worldseed-agent` confines filesystem and network access.
+- **No Security Profiles** – containers run with root privileges and no additional seccomp or AppArmor restrictions, so agents can modify the environment freely.
 
 The orchestrator passes these options when launching each container.
 This logic is implemented in `AgentOrchestrator` via Docker.DotNet's `HostConfig` settings.
