@@ -1,6 +1,7 @@
 using Shared.Models;
 using Shared.LLM;
 using System.Collections.Concurrent;
+using System.Text.Json;
 
 namespace Orchestrator.API.Services;
 
@@ -128,7 +129,10 @@ public class OverseerService
             var lastLog = logs.LastOrDefault() ?? "none";
             var improvPrompt =
                 $"We attempted the subgoal '{currentGoal}' but did not complete it. " +
-                $"Last result: '{lastLog}'. Suggest a short alternative approach to accomplish this subgoal.";
+                $"Last result: '{lastLog}'. " +
+                "Suggest a new concise instruction that includes a measurable objective, " +
+                "uses the \"load_trials\" helper from scripts/fetch_trials.py to obtain data, " +
+                "and states a check that returns DONE when a 12-entry month dictionary is produced.";
             var newApproach = await _llm.CompleteAsync(improvPrompt);
             currentGoal = $"{newApproach.Trim()} (attempt {attempt})";
             state.Logs.Add($"Retrying subgoal '{subgoal}' as '{currentGoal}'");
@@ -139,16 +143,37 @@ public class OverseerService
     {
         var context = state.Results.Count == 0 ? "none" : string.Join("; ", state.Results);
         var prompt = $"Goal: {state.Goal}. Previous results: {context}. " +
-                     "Suggest the next subgoal in a short phrase. If the goal is accomplished respond with 'DONE: <result>'.";
+                     "Suggest the next subgoal in a short phrase that includes: " +
+                     "a clear success metric, instructions to load data via the 'load_trials' helper in scripts/fetch_trials.py, " +
+                     "and a check that returns DONE when a 12-entry month dictionary is produced. " +
+                     "If the goal is accomplished respond with 'DONE: <result>'.";
         return await _llm.CompleteAsync(prompt);
+    }
+
+    private static bool LooksLikeMonthDict(string text)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(text);
+            if (doc.RootElement.ValueKind != JsonValueKind.Object)
+                return false;
+            return doc.RootElement.EnumerateObject().Count() == 12;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private async Task<bool> WaitForCompletionAsync(string agentId, int loops, CancellationToken token)
     {
         var elapsed = 0;
-        while (!token.IsCancellationRequested && elapsed < loops * 10000)
+        while (!token.IsCancellationRequested && elapsed < loops * 5000)
         {
             var logs = await _agents.GetAllMessagesAsync(agentId);
+            var last = logs.LastOrDefault();
+            if (last != null && LooksLikeMonthDict(last))
+                return true;
             if (logs.Any(l => l.Contains("LLM signaled DONE", StringComparison.OrdinalIgnoreCase) ||
                               l.Contains("Planner indicated completion", StringComparison.OrdinalIgnoreCase)))
             {
